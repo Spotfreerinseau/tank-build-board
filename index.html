@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="shopify-api-key" content="4f7b96b553a89adb05a3bf8e9df21c7e">
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+<title>Tank Build Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style id="css">
+:root{
+  --navy:#1B3764; --cyan:#29ABE2; --orange:#FF6B00;
+  --ground:#F4F6FA; --panel:#FFFFFF; --panel-2:#EAEFF6; --panel-3:#F7F9FC;
+  --ink:#101D33; --ink-2:#48597A; --ink-3:#8091AB; --rule:#DCE3ED; --rule-2:#C8D3E1;
+  --ok:#0E7C57; --ok-bg:#E1F2EB; --warn:#9E6408; --warn-bg:#FAEEDA; --crit:#B62F2C; --crit-bg:#FAE4E3;
+  --unknown:#6E7FA0; --unknown-bg:#E9EDF4;
+  --shadow:0 1px 2px rgba(16,29,51,.05),0 10px 28px -18px rgba(16,29,51,.28);
+}
+@media (prefers-color-scheme:dark){
+ :root:not([data-theme="light"]){
+  --navy:#7FA8DC; --cyan:#4FC0F0;
+  --ground:#0A1220; --panel:#121E31; --panel-2:#1A2840; --panel-3:#16233A;
+  --ink:#E9F0F9; --ink-2:#A4B6D0; --ink-3:#71839E; --rule:#22334D; --rule-2:#2E4363;
+  --ok:#4FCC97; --ok-bg:#0E2D22; --warn:#E4A63F; --warn-bg:#2E2410; --crit:#F2786F; --crit-bg:#331715;
+  --unknown:#8598B8; --unknown-bg:#1B2739;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 28px -18px rgba(0,0,0,.8);
+ }
+}
+:root[data-theme="dark"]{
+  --navy:#7FA8DC; --cyan:#4FC0F0;
+  --ground:#0A1220; --panel:#121E31; --panel-2:#1A2840; --panel-3:#16233A;
+  --ink:#E9F0F9; --ink-2:#A4B6D0; --ink-3:#71839E; --rule:#22334D; --rule-2:#2E4363;
+  --ok:#4FCC97; --ok-bg:#0E2D22; --warn:#E4A63F; --warn-bg:#2E2410; --crit:#F2786F; --crit-bg:#331715;
+  --unknown:#8598B8; --unknown-bg:#1B2739;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 28px -18px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:Urbanist,"Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.num{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:620px;margin:0 auto;padding:0 14px 120px}
+
+#top{position:sticky;top:0;z-index:30;background:var(--ground);border-bottom:1px solid var(--rule)}
+#top .in{max-width:620px;margin:0 auto;padding:11px 14px 9px}
+.tline{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+#top h1{margin:1px 0 0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.asof{font-size:11px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.tabs{display:flex;gap:6px;margin-top:10px}
+.tabs button{flex:1 1 0;appearance:none;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);
+  cursor:pointer;font:700 12.5px/1.25 Urbanist,sans-serif;padding:9px 5px;border-radius:8px;min-width:0}
+.tabs button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--panel)}
+.tabs button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.status{display:flex;gap:9px;align-items:center;padding:10px 14px;font-size:13.5px;font-weight:600;
+  border-radius:9px;margin:14px 0 10px}
+.status.crit{background:var(--crit-bg);color:var(--crit)}
+.status.warn{background:var(--warn-bg);color:var(--warn)}
+.status.ok{background:var(--ok-bg);color:var(--ok)}
+.status.unknown{background:var(--unknown-bg);color:var(--unknown)}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chips button{appearance:none;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);cursor:pointer;
+  font:600 12px/1 Urbanist,sans-serif;padding:8px 11px;border-radius:999px}
+.chips button[aria-pressed="true"]{background:var(--panel-2);border-color:var(--rule-2);color:var(--ink)}
+.chips button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.list{background:var(--panel);border:1px solid var(--rule);border-radius:11px;box-shadow:var(--shadow);overflow:hidden}
+.dot{width:9px;height:9px;border-radius:99px;flex:0 0 auto;display:inline-block}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)}
+.dot.crit{background:var(--crit)} .dot.unknown{background:var(--unknown)}
+
+.row{border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.rhd{width:100%;display:flex;gap:10px;align-items:center;padding:11px 13px;background:transparent;border:0;
+  cursor:pointer;color:inherit;font:inherit;text-align:left}
+.rhd:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+.rhd .nm{flex:1 1 auto;font-weight:600;font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rhd .q{font:600 15px/1 "IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;min-width:46px;text-align:right}
+.rhd .w{font:500 12px/1 "IBM Plex Mono",monospace;color:var(--ink-3);min-width:40px;text-align:right}
+.rhd .car{color:var(--ink-3);font-size:11px;width:12px;text-align:center;transition:transform .16s ease}
+.row[data-open="1"] .car{transform:rotate(90deg)}
+.rbody{display:none;padding:2px 13px 12px}
+.row[data-open="1"] .rbody{display:block}
+.rbody .why{font-size:12.5px;color:var(--ink-2);padding:6px 0 4px}
+.pl{display:flex;gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid var(--rule);font-size:12.5px}
+.pl .pn{flex:1 1 auto;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .pv{font:500 12.5px/1 "IBM Plex Mono",monospace;white-space:nowrap}
+.pl.short .pv{color:var(--crit);font-weight:600}
+.pl.none .pv{color:var(--warn);font-weight:600}
+
+.crow{display:flex;gap:10px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--rule)}
+.crow:last-child{border-bottom:0}
+.crow .nm{flex:1 1 auto;min-width:0}
+.crow .nm b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .nm i{display:block;font-style:normal;font-size:10.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.crow .nm em{display:block;font-style:normal;font-size:11.5px;color:var(--warn);font-weight:600;margin-top:2px;white-space:normal}
+.crow input{width:78px;padding:9px 9px;border:1px solid var(--rule-2);border-radius:8px;background:var(--ground);
+  color:var(--ink);font:500 15px/1.1 "IBM Plex Mono",monospace;text-align:right;font-variant-numeric:tabular-nums}
+.crow input:focus{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+.crow input.blank{border-color:var(--warn);background:var(--warn-bg)}
+.crow .un{font-size:11px;color:var(--ink-3);min-width:34px}
+
+.tot{font-size:14px;color:var(--ink-2);background:var(--panel);border:1px solid var(--rule);
+  border-radius:10px;padding:11px 14px;margin:0 0 12px}
+.tot b.big{color:var(--ink);font-size:20px;font-weight:600;font-family:"IBM Plex Mono",monospace}
+.tot b.cap{color:var(--ink);font-weight:700}
+.rbody .shr{display:inline-block;margin-top:4px;font-size:12px;color:var(--warn);font-weight:600}
+.prog{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2);margin:0 0 9px}
+.prog .track{flex:1 1 auto;height:6px;background:var(--panel-2);border-radius:99px;overflow:hidden}
+.prog .track i{display:block;height:100%;background:var(--cyan);border-radius:99px}
+
+#savebar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--panel);border-top:1px solid var(--rule-2);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px -18px rgba(0,0,0,.5)}
+#savebar .in{max-width:620px;margin:0 auto;display:flex;gap:11px;align-items:center}
+#savebar .msg{flex:1 1 auto;font-size:12.5px;color:var(--ink-2);min-width:0}
+#savebar .msg b{display:block;color:var(--ink);font-size:13px;font-weight:700}
+#savebar button{appearance:none;border:0;border-radius:9px;background:var(--orange);color:#fff;cursor:pointer;
+  font:700 14px/1 Urbanist,sans-serif;padding:12px 17px;white-space:nowrap}
+#savebar button[disabled]{background:var(--panel-2);color:var(--ink-3);cursor:default}
+#savebar button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+.field{display:flex;flex-direction:column;gap:5px;margin:0 0 11px}
+.field label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.field select,.field input{width:100%;padding:11px 10px;border:1px solid var(--rule-2);border-radius:9px;
+  background:var(--panel);color:var(--ink);font:500 15px/1.2 Urbanist,sans-serif}
+.field select:focus,.field input:focus{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+.two{display:flex;gap:10px}
+.two .field{flex:1 1 0;min-width:0}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:11px;box-shadow:var(--shadow);padding:13px 13px 14px;margin:0 0 12px}
+.go{appearance:none;border:0;border-radius:9px;background:var(--orange);color:#fff;cursor:pointer;
+  font:700 15px/1 Urbanist,sans-serif;padding:14px 16px;width:100%}
+.go[disabled]{background:var(--panel-2);color:var(--ink-3);cursor:default}
+.go:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.pv2{font:500 12.5px/1 "IBM Plex Mono",monospace;color:var(--ink-3);white-space:nowrap}
+.warnp{display:block;margin:9px 0 0;font-size:12px;color:var(--warn);font-weight:600}
+.warnp.bad{color:var(--crit)}
+.mt{margin-top:12px}
+.pl b{color:var(--ink);font-weight:700}
+.hd2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin:16px 0 8px}
+.lrow{display:flex;gap:10px;align-items:center;padding:10px 13px;border-bottom:1px solid var(--rule)}
+.lrow:last-child{border-bottom:0}
+.lrow .nm{flex:1 1 auto;min-width:0}
+.lrow .nm b{display:block;font-size:13.5px;font-weight:600}
+.lrow .nm i{display:block;font-style:normal;font-size:11px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;white-space:normal}
+.lrow .undo{appearance:none;border:1px solid var(--rule-2);background:var(--panel);color:var(--ink-2);border-radius:7px;
+  cursor:pointer;font:600 11.5px/1 Urbanist,sans-serif;padding:8px 10px;white-space:nowrap}
+.lrow .undo:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.tag{display:inline-block;font:700 9.5px/1 Urbanist,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 6px;border-radius:5px;background:var(--panel-2);color:var(--ink-2);margin-left:6px;vertical-align:1px}
+.tag.gift{background:var(--warn-bg);color:var(--warn)}
+.tag.faulty{background:var(--crit-bg);color:var(--crit)}
+.crow .nm u{display:block;text-decoration:none;font-size:11.5px;color:var(--crit);font-weight:600;margin-top:2px;white-space:normal}
+.foot{margin-top:22px;font-size:12px;color:var(--ink-3);line-height:1.5}
+.foot b{color:var(--ink-2)}
+.asof .rf{appearance:none;border:1px solid var(--rule);background:var(--panel);color:var(--ink-2);border-radius:6px;
+  font:600 11px/1 Urbanist,sans-serif;padding:5px 8px;margin-left:6px;cursor:pointer;vertical-align:1px}
+.asof .rf[disabled]{color:var(--ink-3);cursor:default}
+.asof .rf:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.status .again{appearance:none;border:1px solid currentColor;background:transparent;color:inherit;border-radius:7px;
+  font:700 12px/1 Urbanist,sans-serif;padding:7px 10px;margin-left:auto;cursor:pointer;white-space:nowrap}
+.status span.t{flex:1 1 auto;min-width:0}
+.tag.count{background:var(--unknown-bg);color:var(--unknown)}
+.tag.back{background:var(--ok-bg);color:var(--ok)}
+.lrow.done{opacity:.62}
+.lrow .nm i.ch{margin-top:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="top"></div>
+<div class="wrap"><div id="app"></div></div>
+<div id="savebar"></div>
+<script id="appjs">
+/* Tank Build Board, Shopify admin app. Everything on this page lives in Shopify as metaobjects
+   (Content > Metaobjects in the Shopify admin):
+     tank_board_part      one per part: code, name, on_hand, on_water, on_hold, unit_cost, note
+     tank_board_product   one per product SKU: parts (the recipe), monthly_sales
+     tank_board_movement  every change: stock out, put back, count, Shopify order sync
+     tank_board_settings  "main": sales window and the order sync position
+   The page runs inside the Shopify admin and reads and writes them through
+   App Bridge's Direct API access, so the bots and this page always see the
+   same numbers. There is no server behind it.                                 */
+
+var SERVER = "Shopify";
+var BY = "Tank Build Board";
+var READ = 'query Board { ' +
+  'parts: metaobjects(type:"tank_board_part", first:250){ nodes{ id handle fields{ key value } } } ' +
+  'products: metaobjects(type:"tank_board_product", first:100){ nodes{ id handle fields{ key value } } } ' +
+  'moves: metaobjects(type:"tank_board_movement", first:250, sortKey:"updated_at", reverse:true){ nodes{ id handle fields{ key value } } } ' +
+  'settings: metaobjectByHandle(handle:{type:"tank_board_settings", handle:"main"}){ id fields{ key value } } }';
+
+var DATA = { components:[], recipes:{}, rate:{}, window:"", sync:null };
+var byCode = {}, NAMES = {}, SKUS = [], server = {}, counts = {}, moves = [], undone = {};
+var mcp = null, phase = "loading", loadErr = null, loadedAt = null, busy = false, retried = false;
+var mode = "build", view = "now", filter = "todo", opened = {};
+var outSku = "SFR-TANK-10L", outQty = "1", outWhy = "order", outWho = "", outMsg = "", outErr = "", note = "", noteBad = false;
+var WHY = { order:"Order", gift:"Gift", sample:"Sample", faulty:"Faulty or damaged", own:"Used in the business" };
+
+/* Count drafts: numbers typed on the Count tab but not saved yet. Kept on this
+   device only, so a half-finished stocktake survives a reload.               */
+var DKEY = "sfr-board-count-drafts-v2";
+var drafts = {};
+try { drafts = JSON.parse(localStorage.getItem(DKEY) || "{}") || {}; } catch (e) { drafts = {}; }
+function keepDrafts(){
+  try {
+    if (Object.keys(drafts).length) localStorage.setItem(DKEY, JSON.stringify(drafts));
+    else localStorage.removeItem(DKEY);
+  } catch (e) {}
+}
+
+/* ---------------- reading Shopify ---------------- */
+function fmap(node){ var o = {}; ((node && node.fields) || []).forEach(function(f){ o[f.key] = f.value; }); return o; }
+function num(v){ if (v === null || v === undefined || v === "") return null; var n = Number(v); return isFinite(n) ? n : null; }
+function pj(v, d){ if (v === null || v === undefined || v === "") return d; try { return JSON.parse(v); } catch (e) { return d; } }
+function own(o, k){ return Object.prototype.hasOwnProperty.call(o, k); }
+
+function payloadOf(res){
+  var p = res && res.payload;
+  if (typeof p === "string"){
+    try { p = JSON.parse(p); } catch (e) { throw { code:"tool_error", message:p.slice(0, 200) }; }
+  }
+  if (p && typeof p.result === "string"){ try { p = JSON.parse(p.result); } catch (e) {} }
+  if (!p || typeof p !== "object") throw { code:"upstream_error", message:"Shopify sent back nothing readable" };
+  if (p.errors && p.errors.length){
+    throw { code:"tool_error", message:p.errors.map(function(e){ return (e && e.message) || String(e); }).join("; ") };
+  }
+  return p.data || p;
+}
+
+function apply(d){
+  var comps = (((d.parts || {}).nodes) || []).map(function(n){
+    var f = fmap(n);
+    return { id:n.id, code:f.code, name:f.name || f.code, unit:f.unit || "each", supplier:f.supplier || "",
+             lead:num(f.lead_days) || 0, onHand:num(f.on_hand), onWater:num(f.on_water) || 0,
+             hold:num(f.on_hold) || 0, cost:num(f.unit_cost) || 0, note:f.note || "",
+             sort:num(f.sort) === null ? 999 : num(f.sort) };
+  }).filter(function(c){ return c.code; });
+  comps.sort(function(a, b){ return a.sort - b.sort; });
+  var bc = {};
+  comps.forEach(function(c){ bc[c.code] = c; });
+
+  var prods = (((d.products || {}).nodes) || []).map(function(n){
+    var f = fmap(n), parts = pj(f.parts, []);
+    return { sku:f.sku, name:f.name || f.sku, short:f.short_name || f.name || f.sku,
+             parts:Array.isArray(parts) ? parts : [], rate:num(f.monthly_sales) || 0,
+             sort:num(f.sort) === null ? 999 : num(f.sort) };
+  }).filter(function(p){ return p.sku; });
+  prods.sort(function(a, b){ return a.sort - b.sort; });
+  var recipes = {}, rate = {}, names = {};
+  prods.forEach(function(p){
+    recipes[p.sku] = { name:p.name, items:p.parts.filter(function(it){
+      return it && bc[it.code] && Number(it.qty) > 0;
+    }).map(function(it){ return { code:it.code, qty:Number(it.qty) }; }) };
+    rate[p.sku] = p.rate;
+    names[p.sku] = p.short;
+  });
+
+  var st = d.settings ? fmap(d.settings) : {};
+  DATA = { components:comps, recipes:recipes, rate:rate, window:st.sales_window || "", sync:pj(st.sync, null) };
+  byCode = bc; NAMES = names; SKUS = prods.map(function(p){ return p.sku; });
+  server = {};
+  comps.forEach(function(c){ server[c.code] = c.onHand; });
+
+  var mv = (((d.moves || {}).nodes) || []).map(function(n){
+    var f = fmap(n), ch = pj(f.changes, []), sk = pj(f.skipped, []);
+    return { id:n.id, handle:n.handle, at:f.at || "", sku:f.sku || "", qty:num(f.qty) || 0, why:f.kind || "",
+             who:f.who || "", changes:Array.isArray(ch) ? ch : [], skip:Array.isArray(sk) ? sk : [],
+             value:num(f.value) || 0, by:f.recorded_by || "", undoes:f.undoes || "", summary:f.summary || "" };
+  });
+  mv.sort(function(a, b){ var x = Date.parse(a.at) || 0, y = Date.parse(b.at) || 0; return y - x; });
+  moves = mv;
+  undone = {};
+  mv.forEach(function(m){ if (m.undoes) undone[m.undoes] = m; });
+
+  Object.keys(drafts).forEach(function(k){ if (!bc[k] || drafts[k] === server[k]) delete drafts[k]; });
+  keepDrafts();
+  recount();
+  if (!recipes[outSku] && SKUS.length) outSku = SKUS[0];
+}
+function recount(){
+  counts = {};
+  DATA.components.forEach(function(c){ counts[c.code] = own(drafts, c.code) ? drafts[c.code] : server[c.code]; });
+}
+
+function fetchBoard(){
+  return mcp.callTool(SERVER, "graphql_query", { query:READ }, { cache:false })
+    .then(payloadOf)
+    .then(function(d){
+      if (!d.parts) throw { code:"tool_error", message:"the board's parts aren't in Shopify" };
+      apply(d);
+      loadedAt = new Date(); phase = "ready"; loadErr = null; retried = false;
+    });
+}
+function load(){
+  if (!mcp) return Promise.resolve();
+  return fetchBoard().then(render, function(err){
+    err = err || {};
+    if (err.retryable && !retried){
+      retried = true;
+      var wait = Math.min(err.retryAfterMs || 0, 60000) || (1500 + Math.random() * 2000);
+      return new Promise(function(r){ setTimeout(r, wait); }).then(load);
+    }
+    loadErr = err;
+    if (phase !== "ready") phase = "error";
+    render();
+  });
+}
+
+function errText(e){
+  var c = (e && e.code) || "";
+  if (c === "needs_reauth") return "Shopify needs you to sign in again. Reload the page.";
+  if (c === "forbidden") return "The app isn't allowed to read the board. It needs the metaobjects permission approved in Shopify.";
+  if (c === "server_unavailable") return "Shopify didn't answer just now. Try again in a minute.";
+  if (c === "tool_error") return "Shopify said: " + ((e && e.message) || "something went wrong") + ".";
+  if (c === "cancelled") return "That was cancelled.";
+  return "Couldn't reach Shopify" + (e && e.message ? ": " + e.message : "") + ".";
+}
+function writeErrText(e){
+  var c = (e && e.code) || "";
+  if (c === "server_unavailable" || c === "upstream_error" || !c)
+    return "Shopify didn't confirm that one. The board has reloaded, so check the list below before you try again.";
+  return errText(e);
+}
+
+/* ---------------- writing Shopify ---------------- */
+function F(key, value){ return { key:key, value:String(value) }; }
+function dec(n){ return String(Math.round(Number(n) * 10000) / 10000); }
+function stamp(){ return new Date().toISOString().replace(/\D/g, "").slice(0, 14); }
+function slug(s){ return (String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60)) || "x"; }
+
+function mutate(ops){
+  var decl = [], sel = [], vars = {};
+  ops.forEach(function(op, i){
+    if (op.handle){
+      decl.push("$h" + i + ": MetaobjectHandleInput!", "$m" + i + ": MetaobjectUpsertInput!");
+      sel.push("u" + i + ": metaobjectUpsert(handle: $h" + i + ", metaobject: $m" + i + ") { metaobject { handle } userErrors { field message code } }");
+      vars["h" + i] = op.handle;
+    } else {
+      decl.push("$id" + i + ": ID!", "$m" + i + ": MetaobjectUpdateInput!");
+      sel.push("u" + i + ": metaobjectUpdate(id: $id" + i + ", metaobject: $m" + i + ") { metaobject { handle } userErrors { field message code } }");
+      vars["id" + i] = op.id;
+    }
+    vars["m" + i] = { fields:op.fields };
+  });
+  var q = "mutation Board(" + decl.join(", ") + ") { " + sel.join(" ") + " }";
+  return mcp.callTool(SERVER, "graphql_mutation", { query:q, variables:vars })
+    .then(payloadOf)
+    .then(function(d){
+      var errs = [];
+      ops.forEach(function(op, i){
+        var r = d["u" + i];
+        if (r && r.userErrors && r.userErrors.length) r.userErrors.forEach(function(e){ errs.push(e.message); });
+        else if (!r || !r.metaobject) errs.push("one of the changes didn't stick");
+      });
+      if (errs.length) throw { code:"tool_error", message:errs.join("; ") };
+      return d;
+    });
+}
+function movement(handle, f){
+  var fields = [];
+  Object.keys(f).forEach(function(k){
+    if (f[k] === null || f[k] === undefined || f[k] === "") return;
+    fields.push(F(k, f[k]));
+  });
+  return { handle:{ type:"tank_board_movement", handle:handle }, fields:fields };
+}
+
+/* ---------------- maths ---------------- */
+function has(code){ var v = counts[code]; return !(v === null || v === undefined || v === ""); }
+function avail(code){
+  var c = byCode[code], base = has(code) ? Number(counts[code]) : 0;
+  return view === "now" ? base : base + (c.onWater || 0);
+}
+function shortName(n){ return String(n).split(/[,—(]/)[0].trim(); }
+function nm(sku){ return NAMES[sku] || sku; }
+
+/* Products are not independent. The TDS meters, the resin, the valve heads,
+   the handles, the hoses and the fittings are all shared, so taking each
+   product's maximum on its own promises the same part to several products at
+   once. Instead: share out what you hold in the proportions you actually sell,
+   one unit at a time, and let each product stop when something of its own runs
+   out. Products with no sales in the window cannot be given a share, so they
+   show their standalone maximum and say so.                                    */
+function known(code){
+  var c = byCode[code];
+  return has(code) || (view === "after" && (c.onWater || 0) > 0);
+}
+function allocate(){
+  var pool = {}, out = {};
+  DATA.components.forEach(function(c){ pool[c.code] = known(c.code) ? avail(c.code) : Infinity; });
+
+  SKUS.forEach(function(sku){
+    var unknown = DATA.recipes[sku].items.filter(function(it){ return !known(it.code); })
+                     .map(function(it){ return byCode[it.code]; });
+    out[sku] = { sku:sku, name:nm(sku),
+                 full:DATA.recipes[sku].name.replace(" (not online yet)",""),
+                 items:DATA.recipes[sku].items, rate:DATA.rate[sku] || 0,
+                 unknown:unknown, n:0, who:null, shared:false, inMix:(DATA.rate[sku] || 0) > 0 };
+  });
+
+  var mix = SKUS.filter(function(s){ return out[s].inMix && DATA.recipes[s].items.length; });
+  var total = mix.reduce(function(a, s){ return a + out[s].rate; }, 0);
+  var blockedBy = {}, guard = 0;
+
+  function firstShort(sku){
+    var items = DATA.recipes[sku].items;
+    for (var i = 0; i < items.length; i++){ if (pool[items[i].code] < items[i].qty) return items[i].code; }
+    return null;
+  }
+  while (guard++ < 20000){
+    var live = mix.filter(function(s){ return !blockedBy[s]; });
+    if (!live.length) break;
+    var pick = null, behind = Infinity;
+    live.forEach(function(s){
+      var d = out[s].n / (out[s].rate / total);
+      if (d < behind){ behind = d; pick = s; }
+    });
+    var short = firstShort(pick);
+    if (short){ blockedBy[pick] = short; continue; }
+    DATA.recipes[pick].items.forEach(function(it){ pool[it.code] -= it.qty; });
+    out[pick].n++;
+  }
+  mix.forEach(function(s){
+    var code = blockedBy[s];
+    out[s].who = code ? byCode[code] : null;
+    if (code){
+      var users = SKUS.filter(function(o){
+        return out[o].inMix && DATA.recipes[o].items.some(function(it){ return it.code === code; });
+      });
+      out[s].shared = users.length > 1;
+      out[s].sharedWith = users.filter(function(o){ return o !== s; }).map(function(o){ return out[o].name; });
+    }
+  });
+
+  /* products with no sales rate get no share, so show a standalone maximum
+     from what is left after the mix has been served                            */
+  SKUS.filter(function(s){ return mix.indexOf(s) < 0; }).forEach(function(sku){
+    var n = Infinity, who = null;
+    DATA.recipes[sku].items.forEach(function(it){
+      var a = pool[it.code];
+      if (a === Infinity) return;
+      var k = Math.floor(a / it.qty);
+      if (k < n){ n = k; who = byCode[it.code]; }
+    });
+    out[sku].n = n === Infinity ? null : n;
+    out[sku].who = who;
+    out[sku].inMix = false;
+  });
+
+  SKUS.forEach(function(sku){
+    var m = out[sku];
+    if (m.n !== null && m.unknown.length === m.items.length) m.n = null;
+    m.weeks = (m.n !== null && m.rate > 0) ? (m.n / m.rate) * 4.33 : null;
+    m.sev = m.n === null ? "unknown"
+          : !m.inMix ? "unknown"
+          : m.weeks < 6 ? "crit" : m.weeks < 12 ? "warn" : "ok";
+  });
+  return { out:out, pool:pool };
+}
+function order(m){
+  if (!m.inMix) return 4;                 // no sales in the window, park it at the bottom
+  if (m.sev === "crit") return 0;
+  if (m.sev === "warn") return 1;
+  if (m.n === null) return 2;             // genuinely cannot tell, worth a look
+  return 3;
+}
+function board(){
+  var a = allocate();
+  return SKUS.map(function(s){ return a.out[s]; }).sort(function(x, y){
+    return (order(x) - order(y)) || ((x.weeks === null ? 1e9 : x.weeks) - (y.weeks === null ? 1e9 : y.weeks));
+  });
+}
+function qty(m){ return m.n === null ? "?" : m.n.toLocaleString(); }
+function wshort(m){ return m.weeks === null ? "" : (m.weeks < 1 ? "<1w" : Math.round(m.weeks) + "w"); }
+function wlong(m){
+  if (m.n === null) return "never counted";
+  if (m.weeks === null) return "no sales rate yet";
+  return (m.weeks < 1 ? "under a week" : Math.round(m.weeks) + " weeks") + " of cover at " + m.rate + " a month";
+}
+function plural(n, word){ return n + " " + word + (n === 1 ? "" : "s"); }
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function money(n){
+  return "$" + Number(n).toLocaleString("en-AU", { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function flagged(c){ return /QUERY|CONFIRM|VERIFY|short of/i.test(c.note || ""); }
+function todo(){ return DATA.components.filter(function(c){ return !has(c.code); }); }
+function clock(d){ return d.toLocaleTimeString("en-AU", { hour:"numeric", minute:"2-digit" }).replace(/\s/g, "").toLowerCase(); }
+function day(d){ return d.toLocaleDateString("en-AU", { day:"numeric", month:"short" }); }
+
+/* ---------------- render ---------------- */
+function renderTop(){
+  var ready = phase === "ready", t = ready ? todo().length : null;
+  var asof = phase === "loading" ? "loading from Shopify"
+           : ready ? "Shopify, " + clock(loadedAt)
+           : "not loaded";
+  document.getElementById("top").innerHTML =
+    '<div class="in"><div class="tline"><div>' +
+      '<div class="eyebrow">Spot Free Rinse</div><h1>Tank Build Board</h1></div>' +
+      '<div class="asof">' + esc(asof) + (mcp ? '<button type="button" class="rf" data-refresh' + (busy ? " disabled" : "") + '>Refresh</button>' : '') + '</div>' +
+    '</div><div class="tabs">' +
+      '<button type="button" data-mode="build" aria-pressed="' + (mode === "build") + '">What I can build</button>' +
+      '<button type="button" data-mode="count" aria-pressed="' + (mode === "count") + '">Count parts' + (t === null ? '' : ' (' + t + ' left)') + '</button>' +
+      '<button type="button" data-mode="out" aria-pressed="' + (mode === "out") + '">Take stock out</button>' +
+    '</div></div>';
+  var top = document.getElementById("top");
+  top.querySelectorAll("[data-mode]").forEach(function(b){
+    b.addEventListener("click", function(){ mode = b.dataset.mode; render(); window.scrollTo(0,0); });
+  });
+  top.querySelectorAll("[data-refresh]").forEach(function(b){ b.addEventListener("click", refresh); });
+}
+
+function renderGate(){
+  if (phase === "loading")
+    return '<div class="status unknown"><span class="dot unknown"></span><span class="t">Loading the numbers from Shopify.</span></div>';
+  if (phase === "nomcp")
+    return '<div class="status unknown"><span class="dot unknown"></span><span class="t">This board runs inside your Shopify admin. Open it from Apps in Shopify to see the numbers.</span></div>';
+  return '<div class="status crit"><span class="dot crit"></span><span class="t">' + esc(errText(loadErr)) + '</span>' +
+    '<button type="button" class="again" data-refresh>Try again</button></div>';
+}
+function staleBanner(){
+  if (!loadErr || phase !== "ready") return "";
+  return '<div class="status warn"><span class="dot warn"></span><span class="t">Couldn\'t refresh. ' + esc(errText(loadErr)) +
+    ' Showing what loaded at ' + esc(clock(loadedAt)) + '.</span></div>';
+}
+
+function renderBuild(){
+  var rows = board(), t = todo().length;
+  var crit = rows.filter(function(m){ return m.sev === "crit"; }).length;
+
+  var tanks = rows.filter(function(m){ return m.sku === "SFR-TANK-10L" || m.sku === "SFR-TANK-15L"; });
+  var tankTotal = tanks.reduce(function(a, m){ return a + (m.n || 0); }, 0);
+  var caps = {};
+  tanks.forEach(function(m){ if (m.who) caps[m.who.code] = shortName(m.who.name); });
+  var capNames = Object.keys(caps).map(function(k){ return caps[k]; });
+
+  var sev = crit ? "crit" : (t ? "unknown" : "ok");
+  var msg = crit ? crit + (crit === 1 ? " line is" : " lines are") + " under six weeks"
+                 : (t ? "Nothing urgent on what you have counted" : "Nothing urgent, everything counted");
+  if (t) msg += ". " + t + " parts still to count";
+
+  var sync = DATA.sync;
+  var html =
+    '<div class="chips" role="group" aria-label="Which stock"><button type="button" data-view="now" aria-pressed="' + (view === "now") + '">In the shed now</button>' +
+    '<button type="button" data-view="after" aria-pressed="' + (view === "after") + '">After the container</button></div>' +
+    '<div class="status ' + sev + '"><span class="dot ' + sev + '"></span>' + esc(msg) + '.</div>' +
+    '<div class="tot"><b class="big num">' + tankTotal.toLocaleString() + '</b> tanks in total, split the way you sell them' +
+      (capNames.length ? '. Held back by <b class="cap">' + esc(capNames.join(" and ")) + '</b>' : '') + '.</div>' +
+    '<div class="list">' + rows.map(function(m){
+      var partial = m.n !== null && m.unknown.length > 0;
+      var dsev = partial ? "unknown" : m.sev;
+      return '<div class="row" data-sku="' + esc(m.sku) + '" data-open="' + (opened[m.sku] ? 1 : 0) + '">' +
+        '<button class="rhd" type="button"><span class="dot ' + dsev + '"></span>' +
+        '<span class="nm">' + esc(m.name) + '</span>' +
+        '<span class="q">' + qty(m) + '</span><span class="w">' + wshort(m) + '</span>' +
+        '<span class="car">&#9654;</span></button>' +
+        '<div class="rbody"><div class="why"><b>' + esc(m.full) + '</b><br>' +
+          (m.n === null ? "Cannot tell yet. " + plural(m.unknown.length, "part") + " never counted."
+            : (m.who ? "Runs out of " + esc(shortName(m.who.name)) + " first, " + wlong(m) + "." : wlong(m) + ".")) +
+          (partial ? '<br><span class="shr">Provisional. ' + plural(m.unknown.length, "part") +
+             ' in this line still uncounted, so this number can only fall.</span>' : '') +
+          (m.shared ? '<br><span class="shr">Shared with ' + esc(m.sharedWith.join(", ")) + ', so building more of one means fewer of the other.</span>' : '') +
+          (!m.inMix && m.n !== null ? '<br><span class="shr">No sales in the last month, so this is a standalone maximum from whatever the others leave behind.</span>' : '') +
+        '</div>' + m.items.map(function(it){
+          var c = byCode[it.code], k = known(it.code);
+          var a = avail(it.code), cls = !k ? "none" : (m.who && m.who.code === it.code ? "short" : "");
+          return '<div class="pl ' + cls + '"><span class="pn">' + esc(shortName(c.name)) + (it.qty > 1 ? " &times;" + it.qty : "") + '</span>' +
+            '<span class="pv">' + (k ? a.toLocaleString() + " " + esc(c.unit) : "not counted") + '</span></div>';
+        }).join("") + '</div></div>';
+    }).join("") + '</div>' +
+    '<p class="foot"><b>How the split works.</b> Parts like the TDS meters, the resin and the valve heads go into more than one product, so the board hands them out in the proportions you actually sell rather than giving every product its own maximum. Add the numbers up and they are real.' +
+    (DATA.window ? ' Sales mix taken from ' + esc(DATA.window) + '.' : '') +
+    '<br><br><b>What is not in the number.</b> Parts you have never counted are left out rather than treated as zero, so a figure can only fall once you count them. Tap any line to see its parts.' +
+    (sync && sync.through ? '<br><br><b>Shopify sync.</b> Shipped orders come off every morning. Last run ' +
+      (sync.at ? esc(day(new Date(sync.at))) + ', ' : '') + 'up to order #' + esc(sync.through) + '.' : '') +
+    '<br><br><b>Where the numbers live.</b> In your Shopify store, under Content, Metaobjects. This page and the bots read and write the same records.</p>';
+  return html;
+}
+
+/* ---------------- taking stock out ----------------
+   One place for anything that leaves the shed: an order you fulfilled, a unit
+   gifted to an influencer, a sample, or something you broke. Pick the product,
+   say how many, and every part in its recipe comes off the count at once.     */
+function unitCost(sku){
+  var r = DATA.recipes[sku];
+  return r ? r.items.reduce(function(a, it){
+    var c = byCode[it.code]; return a + (c ? (c.cost || 0) * it.qty : 0);
+  }, 0) : 0;
+}
+function outPlan(){
+  var q = Math.max(0, Math.floor(Number(outQty) || 0));
+  var r = DATA.recipes[outSku] || { items:[] };
+  var lines = r.items.map(function(it){
+    var c = byCode[it.code], need = it.qty * q, have = has(it.code) ? Number(counts[it.code]) : null;
+    return { code:it.code, name:shortName(c.name), unit:c.unit, need:need, have:have,
+             after:have === null ? null : have - need, skip:have === null };
+  });
+  return { q:q, lines:lines,
+           skip:lines.filter(function(l){ return l.skip; }),
+           over:lines.filter(function(l){ return l.after !== null && l.after < 0; }) };
+}
+function takeOut(){
+  if (busy || !mcp) return;
+  var q = Math.max(0, Math.floor(Number(outQty) || 0));
+  if (!q) return;
+  var sku = outSku, why = outWhy, who = outWho.trim();
+  busy = true; outMsg = ""; outErr = ""; render();
+  fetchBoard().then(function(){
+    var r = DATA.recipes[sku];
+    if (!r) throw { code:"tool_error", message:"that product isn't on the board any more" };
+    var need = {}, changes = [], skip = [], ops = [];
+    r.items.forEach(function(it){ need[it.code] = (need[it.code] || 0) + it.qty * q; });
+    Object.keys(need).forEach(function(code){
+      var have = server[code];
+      if (have === null || have === undefined){ skip.push(code); return; }
+      var after = Math.max(0, have - need[code]);
+      if (after === have) return;
+      changes.push({ code:code, delta:after - have });
+      ops.push({ id:byCode[code].id, fields:[F("on_hand", dec(after))] });
+    });
+    ops.unshift(movement("m-" + stamp() + "-" + slug(sku), {
+      summary:q + " " + nm(sku) + " out (" + why + ")", at:new Date().toISOString(), kind:why, sku:sku, qty:q,
+      who:who, changes:JSON.stringify(changes), skipped:JSON.stringify(skip),
+      value:dec(Math.round(unitCost(sku) * q * 100) / 100), recorded_by:BY }));
+    return mutate(ops).then(function(){
+      changes.forEach(function(c){
+        if (own(drafts, c.code) && drafts[c.code] !== null) drafts[c.code] = Math.max(0, drafts[c.code] + c.delta);
+      });
+      keepDrafts();
+      outMsg = q + " " + nm(sku) + " taken out and saved to Shopify.";
+      outQty = "1"; outWho = "";
+    });
+  }).catch(function(err){ outErr = writeErrText(err); })
+    .then(function(){ busy = false; return load(); });
+}
+function putBack(handle){
+  if (busy || !mcp) return;
+  busy = true; outMsg = ""; outErr = ""; render();
+  fetchBoard().then(function(){
+    var m = null;
+    moves.forEach(function(x){ if (x.handle === handle) m = x; });
+    if (!m) throw { code:"tool_error", message:"that movement isn't there any more" };
+    if (undone[handle]) throw { code:"tool_error", message:"that one is already back on the shelf" };
+    var ops = [], changes = [];
+    m.changes.forEach(function(c){
+      var p = byCode[c.code], dl = Number(c.delta);
+      if (!p || !dl) return;
+      var have = server[c.code], base = (have === null || have === undefined) ? 0 : have;
+      var after = Math.max(0, base - dl);
+      if (after === base) return;
+      changes.push({ code:c.code, delta:after - base });
+      ops.push({ id:p.id, fields:[F("on_hand", dec(after))] });
+    });
+    ops.unshift(movement("m-" + stamp() + "-putback-" + slug(m.sku), {
+      summary:m.qty + " " + nm(m.sku) + " put back", at:new Date().toISOString(), kind:"putback", sku:m.sku, qty:m.qty,
+      who:"Undid: " + (m.summary || (m.qty + " " + nm(m.sku))) + (m.who ? ", " + m.who : ""),
+      changes:JSON.stringify(changes), skipped:"[]", value:dec(m.value || 0), recorded_by:BY, undoes:handle }));
+    return mutate(ops).then(function(){
+      changes.forEach(function(c){
+        if (own(drafts, c.code) && drafts[c.code] !== null) drafts[c.code] = Math.max(0, drafts[c.code] + c.delta);
+      });
+      keepDrafts();
+      outMsg = "Put back on the shelf and saved to Shopify.";
+    });
+  }).catch(function(err){ outErr = writeErrText(err); })
+    .then(function(){ busy = false; return load(); });
+}
+function renderPrev(){
+  var host = document.getElementById("outPrev");
+  if (!host) return;
+  var p = outPlan(), cost = unitCost(outSku);
+  host.innerHTML = (p.q
+    ? '<div class="pl"><span class="pn"><b>Comes off the shelf</b></span><span class="pv">' + money(cost * p.q) + '</span></div>' +
+      p.lines.map(function(l){
+        var cls = l.skip ? " none" : ((l.after !== null && l.after < 0) ? " short" : "");
+        return '<div class="pl' + cls + '"><span class="pn">' + esc(l.name) + (l.need > 1 ? " &times;" + l.need : "") + '</span>' +
+          '<span class="pv">' + (l.skip ? "not counted"
+            : l.have.toLocaleString() + " &rarr; " + Math.max(0, l.after).toLocaleString()) + '</span></div>';
+      }).join("")
+    : '') +
+    (p.skip.length ? '<span class="warnp">' + plural(p.skip.length, "part") + ' in this one has never been counted, so nothing comes off those. Count them and this gets exact.</span>' : '') +
+    (p.over.length ? '<span class="warnp bad">More than you hold of ' + esc(p.over.map(function(l){ return l.name; }).join(", ")) + '. Those go to zero, not below.</span>' : '');
+  var b = document.getElementById("outGo");
+  if (b) b.disabled = !p.q || busy;
+}
+function kindLabel(k){
+  return WHY[k] || (k === "count" ? "Count" : k === "putback" ? "Put back" : k || "Change");
+}
+function changeText(e){
+  var bits = (e.changes || []).slice(0, 4).map(function(c){
+    var p = byCode[c.code], n = p ? shortName(p.name) : c.code;
+    if (own(c, "to")) return n + " " + (c.from === null || c.from === undefined ? "blank" : c.from) + " → " + (c.to === null ? "blank" : c.to);
+    return n + " " + (c.delta > 0 ? "+" : "") + c.delta;
+  });
+  if ((e.changes || []).length > 4) bits.push("and " + ((e.changes.length) - 4) + " more");
+  return bits.join(", ");
+}
+function renderOut(){
+  var html = (outErr ? '<div class="status crit"><span class="dot crit"></span><span class="t">' + esc(outErr) + '</span></div>' : '') +
+    (outMsg ? '<div class="status ok"><span class="dot ok"></span><span class="t">' + esc(outMsg) + '</span></div>' : '') +
+    '<div class="card">' +
+      '<div class="field"><label for="outSku">What left the shed</label><select id="outSku">' +
+        SKUS.map(function(k){
+          return '<option value="' + esc(k) + '"' + (k === outSku ? " selected" : "") + '>' + esc(nm(k)) + '</option>';
+        }).join("") + '</select></div>' +
+      '<div class="two">' +
+        '<div class="field"><label for="outQty">How many</label>' +
+          '<input id="outQty" type="number" min="1" step="1" inputmode="numeric" value="' + esc(outQty) + '"></div>' +
+        '<div class="field"><label for="outWhy">Why</label><select id="outWhy">' +
+          Object.keys(WHY).map(function(k){
+            return '<option value="' + k + '"' + (k === outWhy ? " selected" : "") + '>' + esc(WHY[k]) + '</option>';
+          }).join("") + '</select></div>' +
+      '</div>' +
+      '<div class="field"><label for="outWho">Who or which order</label>' +
+        '<input id="outWho" type="text" value="' + esc(outWho) + '" placeholder="optional: name, handle or order number"></div>' +
+      '<div id="outPrev"></div>' +
+      '<div class="mt"><button type="button" class="go" id="outGo"' + (busy ? " disabled" : "") + '>' + (busy ? "Saving to Shopify" : "Take it out of stock") + '</button></div>' +
+    '</div>';
+
+  html += '<div class="hd2">What has gone out</div>';
+  if (!moves.length){
+    html += '<div class="list"><div class="lrow"><span class="nm"><b>Nothing recorded yet</b>' +
+      '<i>Anything you put through here comes off the parts count straight away, and you can put it back.</i></span></div></div>';
+  } else {
+    html += '<div class="list">' + moves.slice(0, 60).map(function(e){
+      var d = new Date(e.at), k = e.why, back = undone[e.handle];
+      var cls = k === "gift" ? " gift" : k === "faulty" ? " faulty" : k === "count" ? " count" : k === "putback" ? " back" : "";
+      var title = k === "count" ? esc(e.summary || "Count updated") : (esc(e.qty) + ' ' + esc(nm(e.sku)));
+      var canUndo = !!WHY[k] && e.changes.length > 0 && !back;
+      var meta = (isNaN(d) ? "" : esc(day(d))) +
+        (e.who ? " &middot; " + esc(e.who) : "") +
+        (e.value && k !== "count" ? " &middot; " + money(e.value) + " of stock" : "") +
+        ((e.skip && e.skip.length) ? " &middot; " + plural(e.skip.length, "part") + " skipped, not counted" : "") +
+        (e.by && e.by !== BY && e.by !== "Old board (history)" ? " &middot; by " + esc(e.by) : "") +
+        (back ? " &middot; put back " + esc(day(new Date(back.at))) : "");
+      return '<div class="lrow' + (back ? " done" : "") + '"><span class="nm"><b>' + title +
+        '<span class="tag' + cls + '">' + esc(kindLabel(k)) + '</span></b><i>' + meta + '</i>' +
+        ((k === "count" || k === "putback") && e.changes.length ? '<i class="ch">' + esc(changeText(e)) + '</i>' : '') +
+        '</span>' +
+        (canUndo ? '<button type="button" class="undo" data-undo="' + esc(e.handle) + '"' + (busy ? " disabled" : "") + '>Put back</button>' : '') +
+        '</div>';
+    }).join("") + '</div>';
+  }
+
+  var gifts = moves.filter(function(e){ return e.why === "gift" && !undone[e.handle]; });
+  if (gifts.length){
+    var gv = gifts.reduce(function(a, e){ return a + (e.value || 0); }, 0);
+    html += '<p class="foot"><b>Gifts and freebies.</b> ' + plural(gifts.length, "giveaway") + ' recorded so far, ' +
+      money(gv) + ' of stock valued at what it cost to land it. Worth handing to your accountant at year end.</p>';
+  }
+  html += '<p class="foot"><b>What this does.</b> Taking one unit out here removes every part in that product in one go and saves it to Shopify straight away, ' +
+    'so the build numbers stay honest without you counting the shed again. Parts you have never counted are left alone rather than pushed negative. ' +
+    'Put back undoes the whole movement and keeps a record that it was put back. Shipped Shopify orders come off by themselves each morning.</p>';
+  return html;
+}
+
+function renderCount(){
+  var all = DATA.components, left = todo(), flags = all.filter(flagged);
+  var pool = filter === "todo" ? left : (filter === "flag" ? flags : all);
+  var done = all.length - left.length, pct = all.length ? Math.round(done / all.length * 100) : 0;
+  var html =
+    '<div class="prog"><span>' + done + ' of ' + all.length + ' counted</span>' +
+    '<span class="track"><i style="width:' + pct + '%"></i></span><span class="num">' + pct + '%</span></div>' +
+    '<div class="chips" role="group" aria-label="Which parts">' +
+    '<button type="button" data-f="todo" aria-pressed="' + (filter === "todo") + '">Still to count (' + left.length + ')</button>' +
+    '<button type="button" data-f="flag" aria-pressed="' + (filter === "flag") + '">Check these (' + flags.length + ')</button>' +
+    '<button type="button" data-f="all" aria-pressed="' + (filter === "all") + '">Everything (' + all.length + ')</button></div>';
+  html += pool.length
+    ? '<div class="list">' + pool.map(function(c){
+        var v = has(c.code) ? counts[c.code] : "";
+        return '<div class="crow"><span class="nm"><b>' + esc(shortName(c.name)) + '</b><i>' + esc(c.code) + ' · ' + esc(c.supplier) + '</i>' +
+          (c.hold ? '<u>' + c.hold.toLocaleString() + ' on hold, not saleable</u>' : '') +
+          ((filter === "flag" && c.note) ? '<em>' + esc(c.note) + '</em>' : '') + '</span>' +
+          '<input type="number" min="0" step="any" inputmode="decimal" data-code="' + esc(c.code) + '" value="' + esc(v) + '" placeholder="count" aria-label="Count of ' + esc(shortName(c.name)) + '">' +
+          '<span class="un">' + esc(c.unit) + '</span></div>';
+      }).join("") + '</div>'
+    : '<div class="list"><div class="crow"><span class="nm"><b>Nothing here. Every part in this list is counted.</b></span></div></div>';
+  html += '<p class="foot"><b>Counting.</b> Type what is physically in the shed. Resin goes in litres, everything else in units. What you type is kept on this device until you press save, then it goes into Shopify for every device and the bots, with a record of what changed.</p>';
+  return html;
+}
+
+function renderProgress(){
+  var all = DATA.components, left = todo().length, done = all.length - left, pct = all.length ? Math.round(done / all.length * 100) : 0;
+  var p = document.querySelector(".prog");
+  if (p) p.innerHTML = '<span>' + done + ' of ' + all.length + ' counted</span>' +
+    '<span class="track"><i style="width:' + pct + '%"></i></span><span class="num">' + pct + '%</span>';
+  var chip = document.querySelector('[data-f="todo"]');
+  if (chip) chip.textContent = "Still to count (" + left + ")";
+}
+
+function renderSave(){
+  var host = document.getElementById("savebar"), n = phase === "ready" ? Object.keys(drafts).length : 0;
+  if (!n && !note){ host.innerHTML = ""; return; }
+  var line = busy && n ? "Saving to Shopify" : (n ? plural(n, "count") + " not saved yet" : note);
+  host.innerHTML = '<div class="in"><span class="msg"><b' + (noteBad && !n ? ' style="color:var(--crit)"' : '') + '>' + esc(line) + '</b>' +
+    (n && !busy ? "Kept on this device. Press save to put them in Shopify." : "") + '</span>' +
+    (n ? '<button type="button" id="saveBtn"' + (busy ? " disabled" : "") + '>' + (busy ? "Saving" : "Save") + '</button>' : '') + '</div>';
+  var b = document.getElementById("saveBtn");
+  if (b) b.addEventListener("click", saveCounts);
+}
+
+function saveCounts(){
+  if (busy || !mcp || !Object.keys(drafts).length) return;
+  busy = true; note = ""; noteBad = false; renderSave();
+  var want = {};
+  Object.keys(drafts).forEach(function(k){ want[k] = drafts[k]; });
+  fetchBoard().then(function(){
+    var ops = [], changes = [];
+    Object.keys(want).forEach(function(code){
+      var p = byCode[code];
+      if (!p) return;
+      var to = want[code], from = server[code];
+      if (to === from) return;
+      changes.push({ code:code, from:from, to:to });
+      ops.push({ id:p.id, fields:[F("on_hand", to === null ? "" : dec(to))] });
+    });
+    if (!ops.length){ drafts = {}; keepDrafts(); note = "Nothing to save, Shopify already has those numbers"; return; }
+    ops.unshift(movement("m-" + stamp() + "-count", {
+      summary:"Count: " + plural(changes.length, "part") + " updated", at:new Date().toISOString(), kind:"count",
+      qty:changes.length, changes:JSON.stringify(changes), recorded_by:BY }));
+    return mutate(ops).then(function(){
+      Object.keys(want).forEach(function(k){ if (drafts[k] === want[k]) delete drafts[k]; });
+      keepDrafts();
+      note = "Counts saved to Shopify";
+      setTimeout(function(){ if (note === "Counts saved to Shopify"){ note = ""; renderSave(); } }, 5000);
+    });
+  }).catch(function(err){ note = writeErrText(err); noteBad = true; })
+    .then(function(){ busy = false; return load(); });
+}
+
+function refresh(){
+  if (busy || !mcp) return;
+  if (phase !== "ready") phase = "loading";
+  loadErr = null; retried = false; render();
+  load();
+}
+
+function render(){
+  renderTop();
+  var app = document.getElementById("app");
+  if (phase !== "ready"){
+    app.innerHTML = renderGate();
+    app.querySelectorAll("[data-refresh]").forEach(function(b){ b.addEventListener("click", refresh); });
+    renderSave();
+    return;
+  }
+  app.innerHTML = staleBanner() +
+    (mode === "build" ? renderBuild() : (mode === "out" ? renderOut() : renderCount()));
+  app.querySelectorAll("[data-view]").forEach(function(b){
+    b.addEventListener("click", function(){ view = b.dataset.view; render(); });
+  });
+  app.querySelectorAll("[data-f]").forEach(function(b){
+    b.addEventListener("click", function(){ filter = b.dataset.f; render(); });
+  });
+  app.querySelectorAll(".rhd").forEach(function(b){
+    b.addEventListener("click", function(){
+      var r = b.parentElement, sku = r.dataset.sku;
+      opened[sku] = !opened[sku];
+      r.dataset.open = opened[sku] ? "1" : "0";
+    });
+  });
+  var selSku = document.getElementById("outSku");
+  if (selSku) selSku.addEventListener("change", function(){ outSku = selSku.value; outMsg = ""; outErr = ""; renderPrev(); });
+  var selWhy = document.getElementById("outWhy");
+  if (selWhy) selWhy.addEventListener("change", function(){ outWhy = selWhy.value; });
+  var inQty = document.getElementById("outQty");
+  if (inQty) inQty.addEventListener("input", function(){ outQty = inQty.value; renderPrev(); });
+  var inWho = document.getElementById("outWho");
+  if (inWho) inWho.addEventListener("input", function(){ outWho = inWho.value; });
+  var goBtn = document.getElementById("outGo");
+  if (goBtn) goBtn.addEventListener("click", takeOut);
+  app.querySelectorAll("[data-undo]").forEach(function(b){
+    b.addEventListener("click", function(){ putBack(b.dataset.undo); });
+  });
+  if (mode === "out") renderPrev();
+  app.querySelectorAll(".crow input").forEach(function(i){
+    i.addEventListener("input", function(){
+      var v = i.value.trim(), code = i.dataset.code;
+      var val = v === "" ? null : Math.max(0, parseFloat(v) || 0);
+      if (val === server[code]) delete drafts[code]; else drafts[code] = val;
+      keepDrafts(); recount(); note = ""; noteBad = false;
+      renderSave(); renderTop(); renderProgress();
+    });
+  });
+  renderSave();
+}
+
+/* ---------------- start ---------------- */
+/* Direct API access: App Bridge authenticates fetches to shopify:admin/...
+   so the page talks to the GraphQL Admin API with no backend. The small shim
+   below gives it the same call shape the rest of the page uses.              */
+function shopifyGraphQL(input){
+  return fetch("shopify:admin/api/graphql.json", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({ query:input.query, variables:input.variables || {} })
+  }).then(function(r){
+    if (r.status === 401) throw { code:"needs_reauth", message:"signed out" };
+    if (r.status === 403) throw { code:"forbidden", message:"not allowed" };
+    if (r.status === 429 || r.status >= 500) throw { code:"server_unavailable", message:"Shopify returned " + r.status, retryable:true };
+    if (!r.ok) throw { code:"upstream_error", message:"Shopify returned " + r.status };
+    return r.json();
+  }, function(e){
+    throw { code:"server_unavailable", message:(e && e.message) || "network error", retryable:true };
+  }).then(function(j){ return { payload:j }; });
+}
+render();
+if (window.shopify){
+  mcp = { callTool:function(server, tool, input){ return shopifyGraphQL(input); } };
+  load();
+} else {
+  phase = "nomcp"; render();
+}
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState !== "visible" || !mcp || busy || phase !== "ready") return;
+  if (loadedAt && Date.now() - loadedAt.getTime() < 60000) return;
+  var a = document.activeElement;
+  if (a && a.tagName === "INPUT") return;
+  load();
+});
+</script>
+</body>
+</html>
