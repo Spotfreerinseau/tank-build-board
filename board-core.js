@@ -72,6 +72,9 @@
           name: f.name || f.sku,
           short_name: f.short_name || f.name || f.sku,
           parts: recipe(json(f.parts, null)),
+          stock_mode: ["full", "bundle"].includes(f.stock_mode)
+            ? f.stock_mode
+            : "shared",
           monthly_sales: numeric(f.monthly_sales) || 0,
           prev_sales: numeric(f.prev_sales),
           listed: numeric(f.listed),
@@ -121,40 +124,57 @@
           (reservations[p.code] || 0),
       ]),
     );
-    const result = products.map((p) => ({
-      p,
-      n: 0,
-      cap:
-        p.monthly_sales > 0
-          ? Math.max(2, Math.ceil((p.monthly_sales * 12) / WEEKS_PER_MONTH))
-          : 2,
-      unknown:
-        !p.parts.length ||
-        p.parts.some((i) => !parts.some((x) => x.code === i.code)),
-      uncounted: p.parts
-        .filter((i) =>
-          parts.some((x) => x.code === i.code && x.on_hand === null),
-        )
-        .map((i) => i.code),
-    }));
+    const result = products.map((p) => {
+      const mode = ["full", "bundle"].includes(p.stock_mode)
+        ? p.stock_mode
+        : "shared";
+      return {
+        p,
+        mode,
+        n: mode === "bundle" ? null : 0,
+        cap:
+          mode === "shared"
+            ? p.monthly_sales > 0
+              ? Math.max(2, Math.ceil((p.monthly_sales * 12) / WEEKS_PER_MONTH))
+              : 2
+            : null,
+        unknown:
+          mode !== "bundle" &&
+          (!p.parts.length ||
+            p.parts.some((i) => !parts.some((x) => x.code === i.code))),
+        uncounted: p.parts
+          .filter((i) =>
+            parts.some((x) => x.code === i.code && x.on_hand === null),
+          )
+          .map((i) => i.code),
+        blocked: null,
+        w: null,
+        atCap: false,
+        sev: "amber",
+      };
+    });
+    const ordered = [...result].sort(
+      (a, b) => (a.p.sort ?? 999) - (b.p.sort ?? 999),
+    );
+    const shared = ordered.filter((r) => r.mode === "shared");
     const short = (r) =>
       !r.p.parts.length
         ? { code: "" }
         : r.p.parts.find(
             (i) => pool[i.code] === undefined || pool[i.code] + 1e-8 < i.qty,
           );
-    const give = (r) => {
-      for (const i of r.p.parts) pool[i.code] -= i.qty;
-      r.n++;
+    const give = (r, units = 1) => {
+      for (const i of r.p.parts) pool[i.code] -= i.qty * units;
+      r.n += units;
     };
-    for (const r of result)
+    for (const r of shared)
       for (let floor = 0; floor < 2; floor++) {
         if (r.unknown || short(r)) break;
         give(r);
       }
     for (;;) {
       let pick;
-      for (const r of result)
+      for (const r of shared)
         if (
           !r.unknown &&
           r.p.monthly_sales > 0 &&
@@ -166,18 +186,38 @@
       if (!pick) break;
       give(pick);
     }
-    for (const r of result) {
-      r.blocked = r.n >= r.cap ? null : short(r)?.code;
+    const finish = (r) => {
+      r.atCap = r.mode === "shared" && !r.unknown && r.n >= r.cap;
+      r.blocked = r.atCap ? null : short(r)?.code;
       r.w = r.unknown ? null : weeks(r.n, r.p.monthly_sales);
-      r.atCap = !r.unknown && r.n >= r.cap;
       r.sev =
         r.unknown || r.w === null
           ? "amber"
-          : r.atCap
+          : r.atCap || r.w >= 12
             ? "green"
             : r.w < 6
               ? "red"
               : "amber";
+    };
+    shared.forEach(finish);
+    // Full products consume only leftovers, in sort order, without a sales cap.
+    // Calculate their maximum in one step rather than looping once per unit.
+    for (const r of ordered.filter((r) => r.mode === "full")) {
+      if (!r.unknown) {
+        const units = Math.max(
+          0,
+          Math.min(
+            ...r.p.parts.map((i) => Math.floor(pool[i.code] / i.qty + 1e-8)),
+          ),
+        );
+        if (Number.isFinite(units)) give(r, units);
+        else {
+          // All recipe parts are uncounted: there is no finite maximum to show.
+          r.n = null;
+          r.unknown = true;
+        }
+      }
+      finish(r);
     }
     return { result, pool };
   }

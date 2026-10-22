@@ -52,6 +52,208 @@ test("settings sync reservations are used unchanged by the shared-parts allocati
   assert.equal(JSON.stringify(shop.settings), before);
   assert.equal(shop.writes.length, 0);
 });
+test("stock_mode is read from Shopify and blank or missing values default to shared", async () => {
+  const { board, shop } = setup();
+  shop.types.tank_board_product.push(
+    node("full-product", "full-product", {
+      sku: "SFR-WFP22",
+      stock_mode: "full",
+      parts: [{ code: "TANK", qty: 1 }],
+    }),
+    node("bundle-product", "bundle-product", {
+      sku: "SFR-BUN-10L",
+      stock_mode: "bundle",
+      parts: [],
+    }),
+    node("blank-product", "blank-product", {
+      sku: "BLANK",
+      stock_mode: "",
+      parts: [{ code: "TANK", qty: 1 }],
+    }),
+  );
+  await board.refresh();
+  assert.equal(
+    board.products.find((p) => p.sku === "SFR-WFP22").stock_mode,
+    "full",
+  );
+  assert.equal(
+    board.products.find((p) => p.sku === "SFR-BUN-10L").stock_mode,
+    "bundle",
+  );
+  assert.equal(
+    board.products.find((p) => p.sku === "BLANK").stock_mode,
+    "shared",
+  );
+  assert.equal(board.products[0].stock_mode, "shared");
+  assert.equal(shop.writes.length, 0);
+});
+test("shared split runs before full products, including reservations and the existing cap", () => {
+  const parts = [
+    { code: "RESIN", on_hand: 1000, on_water: 0 },
+    { code: "TANK", on_hand: 100, on_water: 0 },
+  ];
+  const products = [
+    {
+      sku: "FULL",
+      stock_mode: "full",
+      sort: 0,
+      monthly_sales: 1,
+      parts: [{ code: "RESIN", qty: 1 }],
+    },
+    {
+      sku: "SFR-TANK-10L",
+      stock_mode: "shared",
+      sort: 1,
+      monthly_sales: 2,
+      parts: [
+        { code: "RESIN", qty: 10 },
+        { code: "TANK", qty: 1 },
+      ],
+    },
+    {
+      sku: "SFR-TANK-15L",
+      sort: 2,
+      monthly_sales: 1,
+      parts: [
+        { code: "RESIN", qty: 15 },
+        { code: "TANK", qty: 1 },
+      ],
+    },
+  ];
+  const output = T.allocate(parts, products, { RESIN: 20, TANK: 1 });
+  const row = (sku) => output.result.find((r) => r.p.sku === sku);
+  assert.equal(row("SFR-TANK-10L").n, 6);
+  assert.equal(row("SFR-TANK-15L").n, 3);
+  assert.equal(row("FULL").n, 875);
+  assert.ok(row("FULL").w > 12);
+  assert.equal(row("FULL").atCap, false);
+  assert.equal(row("FULL").cap, null);
+  assert.deepEqual(output.pool, { RESIN: 0, TANK: 90 });
+});
+test("full products take whole units in sort order without a floor or sales requirement", () => {
+  const parts = [{ code: "POLE", on_hand: 20, on_water: 0 }];
+  const products = [
+    {
+      sku: "LATER",
+      stock_mode: "full",
+      sort: 20,
+      monthly_sales: 10,
+      parts: [{ code: "POLE", qty: 2 }],
+    },
+    {
+      sku: "FIRST",
+      stock_mode: "full",
+      sort: 10,
+      monthly_sales: 0,
+      parts: [{ code: "POLE", qty: 3 }],
+    },
+  ];
+  const { result, pool } = T.allocate(parts, products);
+  assert.equal(result.find((r) => r.p.sku === "FIRST").n, 6);
+  assert.equal(result.find((r) => r.p.sku === "FIRST").w, null);
+  assert.equal(result.find((r) => r.p.sku === "LATER").n, 1);
+  assert.equal(pool.POLE, 0);
+});
+test("Shopify bundles never reduce Lite or Pro, even when they sort first or have no recipe", () => {
+  const parts = [
+    { code: "RESIN", on_hand: 105, on_water: 100 },
+    { code: "TANK", on_hand: 20, on_water: 0 },
+  ];
+  const shared = [
+    {
+      sku: "SFR-TANK-10L",
+      sort: 1,
+      monthly_sales: 7,
+      parts: [
+        { code: "RESIN", qty: 10 },
+        { code: "TANK", qty: 1 },
+      ],
+    },
+    {
+      sku: "SFR-TANK-15L",
+      sort: 2,
+      monthly_sales: 3,
+      parts: [
+        { code: "RESIN", qty: 15 },
+        { code: "TANK", qty: 1 },
+      ],
+    },
+  ];
+  const bundles = [
+    {
+      sku: "SFR-BUN-10L",
+      stock_mode: "bundle",
+      sort: -2,
+      monthly_sales: 1000,
+      parts: shared[0].parts,
+    },
+    {
+      sku: "SFR-BUN-15L",
+      stock_mode: "bundle",
+      sort: -1,
+      monthly_sales: 1000,
+      parts: [],
+    },
+  ];
+  for (const includeWater of [false, true]) {
+    const before = T.allocate(parts, shared, { RESIN: 20 }, includeWater);
+    const after = T.allocate(
+      parts,
+      [...bundles, ...shared],
+      { RESIN: 20 },
+      includeWater,
+    );
+    assert.deepEqual(
+      after.result.filter((r) => r.mode === "shared"),
+      before.result,
+    );
+    assert.deepEqual(after.pool, before.pool);
+    for (const r of after.result.filter((r) => r.mode === "bundle")) {
+      assert.equal(r.n, null);
+      assert.equal(r.w, null);
+      assert.equal(r.blocked, null);
+      assert.equal(r.atCap, false);
+    }
+  }
+});
+test("full products honour fractional recipes, reservations, deliveries and shortages", () => {
+  const products = [
+    {
+      sku: "FULL",
+      stock_mode: "full",
+      monthly_sales: 1,
+      parts: [
+        { code: "A", qty: 2.5 },
+        { code: "B", qty: 1 },
+      ],
+    },
+  ];
+  const parts = [
+    { code: "A", on_hand: 25, on_water: 5, on_hold: 100 },
+    { code: "B", on_hand: 100, on_water: 0 },
+  ];
+  const now = T.allocate(parts, products, { A: 5 }).result[0];
+  const after = T.allocate(parts, products, { A: 5 }, true).result[0];
+  assert.equal(now.n, 8);
+  assert.equal(now.blocked, "A");
+  assert.equal(now.w, 8 * 4.33);
+  assert.equal(after.n, 10);
+  assert.equal(T.allocate(parts, products, { A: 30 }).result[0].n, 0);
+});
+test("full products with no counted limiting part cannot create an infinite allocation", () => {
+  const parts = [{ code: "UNKNOWN", on_hand: null, on_water: 0 }];
+  const { result, pool } = T.allocate(parts, [
+    {
+      sku: "FULL",
+      stock_mode: "full",
+      monthly_sales: 1,
+      parts: [{ code: "UNKNOWN", qty: 1 }],
+    },
+  ]);
+  assert.equal(result[0].n, null);
+  assert.equal(result[0].unknown, true);
+  assert.equal(pool.UNKNOWN, Infinity);
+});
 test("allocation conserves parts, honours sort-order floor and exact 4.33 stopping threshold over independent random scenarios", () => {
   let seed = 41;
   const random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32;
