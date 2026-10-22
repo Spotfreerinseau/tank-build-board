@@ -94,6 +94,155 @@ const root = path.resolve(__dirname, "..");
     assert.equal(await page.locator(".preview").count(), 0);
     checks++;
 
+    // Stock modes come from metaobjects. Full kits are uncapped; native bundles
+    // do not change the shared tank allocation or the Lite + Pro summary total.
+    const product = (sku) =>
+      page
+        .locator(".product")
+        .filter({ has: page.locator(`[data-recipe="${sku}"]`) });
+    const liteBefore = await product("SFR-TANK-10L")
+      .locator(".build-number")
+      .textContent();
+    const proBefore = await product("SFR-TANK-15L")
+      .locator(".build-number")
+      .textContent();
+    const totalBefore = await page
+      .locator(".summary-item strong")
+      .first()
+      .textContent();
+    shop.types.tank_board_part.push(
+      node("pole22", "pole22", {
+        code: "POLE22",
+        name: "22ft pole kit parts",
+        on_hand: 100,
+        on_water: 0,
+        unit: "each",
+        lead_days: 14,
+        sort: 4,
+      }),
+      node("pole30", "pole30", {
+        code: "POLE30",
+        name: "30ft pole kit parts",
+        on_hand: 5,
+        on_water: 0,
+        unit: "each",
+        lead_days: 14,
+        sort: 5,
+      }),
+    );
+    shop.types.tank_board_product.push(
+      node("wfp22", "wfp22", {
+        sku: "SFR-WFP22",
+        name: "22ft pole kit",
+        stock_mode: "full",
+        parts: [{ code: "POLE22", qty: 1 }],
+        monthly_sales: 2,
+        prev_sales: 1,
+        listed: 999,
+        sort: 4,
+      }),
+      node("wfp30", "wfp30", {
+        sku: "SFR-WFP30",
+        name: "30ft pole kit",
+        stock_mode: "full",
+        parts: [{ code: "POLE30", qty: 1 }],
+        monthly_sales: 0,
+        prev_sales: 0,
+        listed: 999,
+        sort: 5,
+      }),
+      node("bundle-lite", "bundle-lite", {
+        sku: "SFR-BUN-10L",
+        name: "Lite tank + 22ft pole kit",
+        stock_mode: "bundle",
+        parts: [
+          { code: "RESIN", qty: 10 },
+          { code: "TANK", qty: 1 },
+          { code: "POLE22", qty: 1 },
+        ],
+        monthly_sales: 0,
+        prev_sales: 0,
+        listed: 999,
+        sort: 6,
+      }),
+      node("bundle-pro", "bundle-pro", {
+        sku: "SFR-BUN-15L",
+        name: "Pro tank + 22ft pole kit",
+        stock_mode: "bundle",
+        parts: [
+          { code: "RESIN", qty: 15 },
+          { code: "TANK", qty: 1 },
+          { code: "POLE22", qty: 1 },
+        ],
+        monthly_sales: 0,
+        prev_sales: 0,
+        listed: 999,
+        sort: 7,
+      }),
+    );
+    await page.locator("[data-refresh]").click();
+    await ready();
+    assert.equal(
+      await product("SFR-TANK-10L").locator(".build-number").textContent(),
+      liteBefore,
+    );
+    assert.equal(
+      await product("SFR-TANK-15L").locator(".build-number").textContent(),
+      proBefore,
+    );
+    assert.equal(
+      await page.locator(".summary-item strong").first().textContent(),
+      totalBefore,
+    );
+    assert.equal(
+      await product("SFR-WFP22").locator(".build-number").textContent(),
+      "100",
+    );
+    assert.match(
+      await product("SFR-WFP22").innerText(),
+      /216\.5 weeks of cover/,
+    );
+    assert.match(
+      await product("SFR-WFP22").locator(".product-foot").innerText(),
+      /Held back by 22ft pole kit parts/,
+    );
+    assert.equal(await product("SFR-WFP22").locator(".cover-track").count(), 0);
+    assert.doesNotMatch(
+      await product("SFR-WFP22").innerText(),
+      /Listed exceeds parts|12-week limit/,
+    );
+    assert.equal(
+      await product("SFR-WFP30").locator(".build-number").textContent(),
+      "5",
+    );
+    assert.equal(await product("SFR-WFP30").locator(".cover-line").count(), 0);
+    for (const sku of ["SFR-BUN-10L", "SFR-BUN-15L"]) {
+      assert.equal(await product(sku).locator(".build-number").count(), 0);
+      assert.match(await product(sku).innerText(), /Shopify bundle/);
+      assert.match(
+        await product(sku).innerText(),
+        /Stock comes from the products inside it in Shopify/,
+      );
+      assert.doesNotMatch(
+        await product(sku).innerText(),
+        /Listed exceeds parts|weeks of cover/,
+      );
+      await product(sku).locator("[data-recipe]").click();
+      assert.equal(
+        await product(sku).locator(".recipe-details").isVisible(),
+        true,
+      );
+      assert.match(
+        await product(sku).locator(".recipe-details").innerText(),
+        /DI resin/,
+      );
+    }
+    assert.match(
+      await product("SFR-TANK-10L").innerText(),
+      /Listed exceeds parts/,
+    );
+    checks += 4;
+
     // The approved layout must work across both navigation modes and every screen.
     for (const width of [320, 360, 390, 680, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
