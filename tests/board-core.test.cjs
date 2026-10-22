@@ -22,9 +22,11 @@ const stockOut = (board, qty = 1) => ({
 test("Shopify reader preserves schema, null counts, new product fields and Extrepure lead time", async () => {
   const { board, shop } = setup();
   shop.pageSize = 1;
+  shop.part("RESIN").fields.push({ key: "eta", value: "2026-12-04" });
   await board.refresh();
   assert.equal(board.parts.length, 3);
   assert.equal(board.parts[0].lead_days, 90);
+  assert.equal(board.parts[0].eta, "2026-12-04");
   assert.equal(board.parts[1].lead_days, 14);
   assert.equal(board.parts[2].on_hand, null);
   assert.equal(board.products[0].prev_sales, 4);
@@ -33,6 +35,163 @@ test("Shopify reader preserves schema, null counts, new product fields and Extre
   assert.equal(board.products[2].listed, null);
   assert.ok(shop.requests.filter((r) => r.op === "BoardObjects").length > 3);
   assert.equal(shop.writes.length, 0);
+});
+const planningDay = new Date("2026-10-23T12:00:00+10:00");
+const forecastPart = (extra = {}) => ({
+  code: "RESIN",
+  name: "DI resin",
+  supplier: "Extrepure",
+  unit: "L",
+  on_hand: 40,
+  on_water: 50,
+  lead_days: 90,
+  eta: "",
+  ...extra,
+});
+const forecastProducts = (parts) =>
+  parts.map((p) => ({
+    sku: p.code,
+    short_name: p.code + " product",
+    monthly_sales: p.sales ?? 43.3,
+    parts: [{ code: p.code, qty: 1 }],
+  }));
+test("Running short uses ETA, reserved shelf stock and rounded-up gap quantities", () => {
+  const p = forecastPart({ on_hand: 50, eta: "2026-12-04" });
+  const [info] = T.runningShort(
+    [p],
+    forecastProducts([p]),
+    { RESIN: 10 },
+    planningDay,
+  );
+  assert.equal(info.w, 4);
+  assert.equal(
+    info.runOut.getTime(),
+    new Date("2026-11-20T00:00:00+10:00").getTime(),
+  );
+  assert.equal(
+    info.arrival.getTime(),
+    new Date("2026-12-04T00:00:00+10:00").getTime(),
+  );
+  assert.equal(info.gap, true);
+  assert.equal(info.gapWeeks, 2);
+  assert.equal(info.shortfall, 20);
+  assert.equal(info.sev, "red");
+  const fraction = T.partInfo(p, 43.3, 11, planningDay);
+  assert.equal(fraction.shortfall, 21);
+});
+test("Running short falls back to today plus lead days when ETA is blank", () => {
+  const p = forecastPart();
+  const [info] = T.runningShort(
+    [p],
+    forecastProducts([p]),
+    {},
+    new Date("2026-10-22T18:00:00Z"),
+  );
+  assert.equal(
+    info.arrival.getTime(),
+    new Date("2027-01-21T00:00:00+10:00").getTime(),
+  );
+  assert.equal(info.gap, true);
+  assert.ok(Math.abs(info.gapWeeks - 62 / 7) < 1e-8);
+  assert.equal(info.shortfall, 89);
+});
+test("Running short includes order-by dates within eight weeks, including the boundary", () => {
+  const parts = [
+    forecastPart({ code: "SOON", on_hand: 100, on_water: 0, lead_days: 28 }),
+    forecastPart({
+      code: "BOUNDARY",
+      on_hand: 120,
+      on_water: 0,
+      lead_days: 28,
+    }),
+    forecastPart({
+      code: "LATER",
+      on_hand: 120.01,
+      on_water: 0,
+      lead_days: 28,
+    }),
+  ];
+  const rows = T.runningShort(parts, forecastProducts(parts), {}, planningDay);
+  assert.deepEqual(
+    rows.map((r) => r.p.code),
+    ["SOON", "BOUNDARY"],
+  );
+  assert.equal(
+    rows[0].due.getTime(),
+    new Date("2026-12-04T00:00:00+10:00").getTime(),
+  );
+  assert.equal(
+    rows[1].due.getTime(),
+    new Date("2026-12-18T00:00:00+10:00").getTime(),
+  );
+  assert.equal(rows[0].overdue, false);
+});
+test("Running short includes an overdue order-by date", () => {
+  const p = forecastPart({ on_hand: 20, on_water: 0, lead_days: 28 });
+  const [info] = T.runningShort([p], forecastProducts([p]), {}, planningDay);
+  assert.equal(info.overdue, true);
+  assert.equal(info.sev, "red");
+  assert.equal(
+    info.due.getTime(),
+    new Date("2026-10-09T00:00:00+10:00").getTime(),
+  );
+});
+test("Running short excludes covered, uncounted and zero-pace parts", () => {
+  const parts = [
+    forecastPart({ code: "EARLY", eta: "2026-11-06" }),
+    forecastPart({ code: "JUST_IN_TIME", eta: "2026-11-20" }),
+    forecastPart({ code: "EARLY_FALLBACK", lead_days: 14 }),
+    forecastPart({ code: "LATER", on_hand: 200, on_water: 0, lead_days: 28 }),
+    forecastPart({ code: "UNCOUNTED", on_hand: null }),
+    forecastPart({ code: "NO_SALES", sales: 0 }),
+  ];
+  assert.deepEqual(
+    T.runningShort(parts, forecastProducts(parts), {}, planningDay),
+    [],
+  );
+});
+test("Running short sorts by reserved shelf weeks and lists only recipe users with sales", () => {
+  const parts = [
+    forecastPart({ code: "SECOND", on_hand: 40 }),
+    forecastPart({ code: "FIRST", on_hand: 20 }),
+  ];
+  const products = [
+    {
+      sku: "LITE",
+      short_name: "Lite",
+      monthly_sales: 10,
+      parts: [{ code: "FIRST", qty: 2 }],
+    },
+    {
+      sku: "PRO",
+      short_name: "Pro",
+      monthly_sales: 23.3,
+      parts: [{ code: "FIRST", qty: 1 }],
+    },
+    {
+      sku: "ZERO",
+      short_name: "No sales",
+      monthly_sales: 0,
+      parts: [{ code: "FIRST", qty: 10 }],
+    },
+    {
+      sku: "OTHER",
+      short_name: "Other",
+      monthly_sales: 43.3,
+      parts: [{ code: "SECOND", qty: 1 }],
+    },
+  ];
+  const rows = T.runningShort(parts, products, { FIRST: 30 }, planningDay);
+  assert.deepEqual(
+    rows.map((r) => r.p.code),
+    ["FIRST", "SECOND"],
+  );
+  assert.equal(rows[0].w, -1);
+  assert.equal(rows[0].rate, 43.3);
+  assert.deepEqual(
+    rows[0].products.map((p) => p.short_name),
+    ["Lite", "Pro"],
+  );
 });
 test("settings sync reservations are used unchanged by the shared-parts allocation", async () => {
   const { board, shop } = setup();

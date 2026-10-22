@@ -4,6 +4,23 @@
 (function (root) {
   const BY = "Tank Build Board";
   const WEEKS_PER_MONTH = 4.33;
+  const DAY = 86400000,
+    WEEK = 7 * DAY;
+  const localDate = (at) =>
+    new Date(at).toLocaleDateString("en-CA", {
+      timeZone: "Australia/Brisbane",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  function dateField(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+    const parsed = new Date(value + "T00:00:00+10:00");
+    return Number.isFinite(parsed.getTime()) && localDate(parsed) === value
+      ? parsed
+      : null;
+  }
+  const today = (at) => dateField(localDate(at));
   const numeric = (v) =>
     v === null || v === undefined || v === "" || !Number.isFinite(Number(v))
       ? null
@@ -58,6 +75,7 @@
           lead_days: /extrepure/i.test(f.supplier || "")
             ? 90
             : numeric(f.lead_days),
+          eta: f.eta || "",
           sort: numeric(f.sort) ?? 999,
         };
       })
@@ -113,6 +131,86 @@
       movements,
       settings: { ...settings, sync: json(settings.sync, null) },
     };
+  }
+
+  function pace(code, products) {
+    return products.reduce(
+      (sum, p) =>
+        sum +
+        p.monthly_sales *
+          p.parts
+            .filter((i) => i.code === code)
+            .reduce((total, i) => total + i.qty, 0),
+      0,
+    );
+  }
+
+  function partInfo(p, rate, reserved = 0, at = new Date()) {
+    const day = today(at),
+      lead = numeric(p.lead_days),
+      usable = p.on_hand === null ? null : p.on_hand - reserved,
+      w = weeks(usable, rate),
+      runOut = w === null ? null : new Date(day.getTime() + w * WEEK),
+      arrival =
+        p.on_water > 0
+          ? dateField(p.eta) ||
+            (lead === null ? null : new Date(day.getTime() + lead * DAY))
+          : null,
+      totalWeeks = weeks(usable === null ? null : usable + p.on_water, rate),
+      due =
+        totalWeeks === null || lead === null
+          ? null
+          : new Date(day.getTime() + totalWeeks * WEEK - lead * DAY),
+      gap = !!(arrival && runOut && arrival > runOut),
+      gapWeeks = gap ? (arrival - runOut) / WEEK : 0,
+      shortfall = gap
+        ? Math.ceil((rate / WEEKS_PER_MONTH) * gapWeeks - 1e-9)
+        : 0,
+      overdue = !!(due && due < day),
+      attention =
+        w !== null &&
+        (gap ||
+          (p.on_water <= 0 &&
+            due !== null &&
+            due.getTime() <= day.getTime() + 8 * WEEK));
+    return {
+      p,
+      rate,
+      reserved,
+      usable,
+      w,
+      runOut,
+      arrival,
+      due,
+      gap,
+      gapWeeks,
+      shortfall,
+      overdue,
+      attention,
+      sev: gap
+        ? "red"
+        : !due
+          ? "amber"
+          : overdue
+            ? "red"
+            : due - day < 14 * DAY
+              ? "amber"
+              : "green",
+    };
+  }
+
+  function runningShort(parts, products, reservations = {}, at = new Date()) {
+    return parts
+      .map((p) => ({
+        ...partInfo(p, pace(p.code, products), reservations[p.code] || 0, at),
+        products: products.filter(
+          (product) =>
+            product.monthly_sales > 0 &&
+            product.parts.some((i) => i.code === p.code),
+        ),
+      }))
+      .filter((info) => info.attention)
+      .sort((a, b) => a.w - b.w || (a.p.sort ?? 999) - (b.p.sort ?? 999));
   }
 
   function allocate(parts, products, reservations = {}, includeWater = false) {
@@ -565,6 +663,9 @@
     BY,
     WEEKS_PER_MONTH,
     weeks,
+    pace,
+    partInfo,
+    runningShort,
     normalise,
     recipe,
     allocate,

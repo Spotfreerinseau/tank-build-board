@@ -22,6 +22,7 @@ const root = path.resolve(__dirname, "..");
     const page = await context.newPage(),
       shop = new Shopify(),
       errors = [];
+    await page.clock.install({ time: new Date("2026-10-23T12:00:00+10:00") });
     page.on("pageerror", (e) => errors.push(e.message));
     await page.exposeFunction("shopifyRequest", async (url, options) => {
       const response = await shop.fetcher(url, options);
@@ -243,6 +244,203 @@ const root = path.resolve(__dirname, "..");
     );
     checks += 4;
 
+    // Forecast rows exercise ETA override, lead-time fallback, order dates,
+    // excluded parts and the same arrival dates on mobile/desktop Parts views.
+    const forecasts = [
+      {
+        code: "ETA-RESIN",
+        name: "Backup resin",
+        unit: "L",
+        on_hand: 50,
+        on_water: 100,
+        lead_days: 90,
+        eta: "2026-12-04",
+      },
+      {
+        code: "FALLBACK",
+        name: "Factory valves",
+        unit: "each",
+        on_hand: 40,
+        on_water: 100,
+        lead_days: 90,
+      },
+      {
+        code: "SOON",
+        name: "Meter fittings",
+        unit: "each",
+        on_hand: 100,
+        on_water: 0,
+        lead_days: 28,
+      },
+      {
+        code: "OVERDUE",
+        name: "Hose ends",
+        unit: "each",
+        on_hand: 20,
+        on_water: 0,
+        lead_days: 28,
+      },
+      {
+        code: "COVERED",
+        name: "Covered heads",
+        unit: "each",
+        on_hand: 40,
+        on_water: 100,
+        lead_days: 90,
+        eta: "2026-11-06",
+      },
+      {
+        code: "NO-SALES",
+        name: "No sales part",
+        unit: "each",
+        on_hand: 40,
+        on_water: 0,
+        lead_days: 90,
+      },
+      {
+        code: "UNCOUNTED",
+        name: "Uncounted part",
+        unit: "each",
+        on_hand: "",
+        on_water: 0,
+        lead_days: 90,
+      },
+    ];
+    forecasts.forEach((p, i) => {
+      shop.types.tank_board_part.push(
+        node("forecast-" + p.code, "forecast-" + p.code.toLowerCase(), {
+          ...p,
+          supplier: "Test supplier",
+          sort: 100 + i,
+        }),
+      );
+      shop.types.tank_board_product.push(
+        node(
+          "forecast-product-" + p.code,
+          "forecast-product-" + p.code.toLowerCase(),
+          {
+            sku: "PLAN-" + p.code,
+            name: p.name + " product",
+            short_name: p.code === "ETA-RESIN" ? "Refills" : p.name + " kit",
+            stock_mode: "full",
+            parts: [{ code: p.code, qty: 1 }],
+            monthly_sales:
+              p.code === "NO-SALES" ? 0 : p.code === "ETA-RESIN" ? 20 : 43.3,
+            prev_sales: 0,
+            listed: 0,
+            sort: 100 + i,
+          },
+        ),
+      );
+    });
+    shop.types.tank_board_product.push(
+      node("service-product", "service-product", {
+        sku: "SERVICE",
+        name: "Service kits",
+        short_name: "Service kits",
+        stock_mode: "shared",
+        parts: [{ code: "ETA-RESIN", qty: 1 }],
+        monthly_sales: 23.3,
+        prev_sales: 0,
+        listed: 0,
+        sort: 120,
+      }),
+    );
+    const syncField = shop.settings.fields.find((f) => f.key === "sync"),
+      sync = JSON.parse(syncField.value);
+    sync.reserved["ETA-RESIN"] = 10;
+    syncField.value = JSON.stringify(sync);
+    await page.locator("[data-refresh]").click();
+    await ready();
+    const shortage = (code) =>
+      page.locator(`#running-short [data-part-focus="${code}"]`);
+    assert.deepEqual(
+      await page
+        .locator("#running-short .shortage-row")
+        .evaluateAll((rows) => rows.map((r) => r.dataset.partFocus)),
+      ["OVERDUE", "RESIN", "ETA-RESIN", "FALLBACK", "SOON"],
+    );
+    assert.match(await shortage("ETA-RESIN").innerText(), /Test supplier/);
+    assert.match(await shortage("ETA-RESIN").innerText(), /4\.0 weeks/);
+    assert.match(await shortage("ETA-RESIN").innerText(), /runs out ~20 Nov/);
+    assert.match(
+      await shortage("ETA-RESIN").innerText(),
+      /Holds back: Refills, Service kits/,
+    );
+    assert.match(
+      await shortage("ETA-RESIN").innerText(),
+      /100 on the way, lands ~4 Dec\. Runs out about 2\.0 weeks before it lands, about 20 litres short/,
+    );
+    assert.match(await shortage("OVERDUE").innerText(), /Overdue: order now/);
+    assert.equal(
+      await shortage("OVERDUE").evaluate((el) => el.classList.contains("red")),
+      true,
+    );
+    assert.match(await shortage("SOON").innerText(), /Order by 4 Dec/);
+    assert.equal(
+      await shortage("SOON").evaluate((el) => el.classList.contains("amber")),
+      true,
+    );
+    assert.equal(
+      await page.evaluate(
+        () =>
+          document
+            .querySelector("#running-short")
+            .compareDocumentPosition(document.querySelector(".summary")) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+      4,
+    );
+    assert.equal(await page.locator(".notice").count(), 0);
+    assert.doesNotMatch(
+      await product("PLAN-COVERED").innerText(),
+      /Runs out before the delivery lands/,
+    );
+    checks++;
+    await shortage("ETA-RESIN").click();
+    assert.equal(
+      await page.locator("#parts-search").inputValue(),
+      "Backup resin",
+    );
+    assert.match(
+      await page.locator(".part-cards .arrival-date").innerText(),
+      /lands ~4 Dec/,
+    );
+    assert.match(
+      await page.locator(".part-cards .part-reorder").innerText(),
+      /about 20 litres short/,
+    );
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    assert.match(
+      await page.locator(".part-table .arrival-date").innerText(),
+      /lands ~4 Dec/,
+    );
+    await nav("home");
+    await shortage("FALLBACK").click();
+    assert.match(
+      await page.locator(".part-table .arrival-date").innerText(),
+      /lands ~21 Jan/,
+    );
+    await nav("home");
+    checks++;
+    const originalParts = structuredClone(shop.types.tank_board_part);
+    for (const part of shop.types.tank_board_part)
+      for (const field of part.fields) {
+        if (field.key === "on_hand") field.value = "100000";
+        if (field.key === "on_water") field.value = "0";
+      }
+    await page.locator("[data-refresh]").click();
+    await ready();
+    assert.equal(await page.locator("#running-short .shortage-row").count(), 0);
+    assert.match(
+      await page.locator("#running-short").innerText(),
+      /Nothing running short at the current pace\./,
+    );
+    shop.types.tank_board_part = originalParts;
+    await page.locator("[data-refresh]").click();
+    await ready();
+    checks++;
+
     // The approved layout must work across both navigation modes and every screen.
     for (const width of [320, 360, 390, 680, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
@@ -442,6 +640,9 @@ const root = path.resolve(__dirname, "..");
     // Allocation and its last-run note come entirely from the settings sync JSON.
     await nav("home");
     const reservedBuild = await page.locator(".build-number").allTextContents();
+    const reservedSnapshot = JSON.parse(
+      shop.settings.fields.find((f) => f.key === "sync").value,
+    ).reserved;
     assert.equal(
       await page.locator("#reservation-note").textContent(),
       "Parts for unshipped orders are set aside at each daily sync (last run 21 Oct, 6:51 am).",
@@ -462,7 +663,7 @@ const root = path.resolve(__dirname, "..");
     shop.settings = node("settings", "main", {
       sync: {
         at: "2026-10-21T06:51:00+10:00",
-        reserved: { RESIN: 20, TANK: 2 },
+        reserved: reservedSnapshot,
       },
     });
     await page.locator("[data-refresh]").click();
@@ -475,14 +676,14 @@ const root = path.resolve(__dirname, "..");
     await nav("home");
     assert.match(
       await page.locator("#main").innerText(),
-      /will run out before the delivery lands/,
+      /Runs out about .* weeks before it lands/,
     );
     checks++;
     await nav("parts");
     await page.locator("#parts-search").fill("DI resin");
     assert.match(
       await page.locator("#parts-results").innerText(),
-      /Delivery on the way · runs out before it lands/,
+      /on the way, lands ~.*Runs out about/,
     );
     checks++;
     for (const request of shop.requests) {
