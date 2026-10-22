@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
-const { Shopify } = require("./shopify-fixture.cjs");
+const { Shopify, node } = require("./shopify-fixture.cjs");
 const root = path.resolve(__dirname, "..");
 
 (async () => {
@@ -221,48 +221,106 @@ const root = path.resolve(__dirname, "..");
     assert.equal(shop.value("RESIN"), 101);
     checks++;
 
-    // Shopify names include the 113 suffix; save the full digits used by the daily sync.
+    // Only the three non-order actions remain; their optional note is retained.
     await action("out");
-    await page.locator('[data-why="order"]').click();
-    await page.locator("#out-qty").fill("2");
-    await page.locator("#out-who").fill("1680");
-    await page.locator("[data-save-out]").click();
-    await saved();
-    let record = shop.types.tank_board_movement.find((n) =>
-      n.fields.some(
-        (f) => f.key === "who" && f.value === "Shopify order #1680113",
-      ),
+    assert.deepEqual(
+      await page
+        .locator("[data-why]")
+        .evaluateAll((buttons) => buttons.map((b) => b.dataset.why)),
+      ["gift", "sample", "faulty"],
     );
-    assert.ok(record);
     assert.equal(
-      record.fields.find((f) => f.key === "orders").value,
-      "[1680113]",
+      await page.locator("#order-note, [data-why=order]").count(),
+      0,
     );
-    const afterOrder = shop.value("RESIN");
-    await page.locator("#out-qty").fill("2");
-    await page.locator("#out-who").fill("#1680113");
-    await page.locator("[data-save-out]").click();
-    await page
-      .getByRole("alert")
-      .filter({ hasText: "already in History" })
-      .waitFor();
-    assert.equal(shop.value("RESIN"), afterOrder);
+    assert.equal(
+      await page.getByLabel("Who or a short note (optional)").count(),
+      1,
+    );
+    for (const reason of ["sample", "faulty"]) {
+      await page.locator(`[data-why="${reason}"]`).click();
+      await page.locator("#out-who").fill("Workshop test");
+      await page.locator("[data-save-out]").click();
+      await saved();
+      const record = shop.types.tank_board_movement[0];
+      assert.equal(record.fields.find((f) => f.key === "kind").value, reason);
+      assert.equal(
+        record.fields.find((f) => f.key === "who").value,
+        "Workshop test",
+      );
+      assert.equal(record.fields.find((f) => f.key === "orders").value, "[]");
+    }
+    assert.equal(shop.value("RESIN"), 81);
     checks++;
+
+    // Existing manual order entries still display, filter and undo without order access.
+    shop.types.tank_board_movement.push(
+      node("legacy-order", "legacy-order", {
+        kind: "order",
+        recorded_by: "Tank Build Board",
+        summary: "2 Lite tanks taken out (old order)",
+        who: "Shopify order #1680113",
+        sku: "SFR-TANK-10L",
+        qty: 2,
+        orders: [1680113],
+        at: "2026-10-20T09:00:00+10:00",
+        changes: [
+          { code: "RESIN", delta: -20 },
+          { code: "TANK", delta: -2 },
+        ],
+      }),
+    );
+    await page.locator("[data-refresh]").click();
+    await ready();
     await nav("history");
+    await page.locator("#history-kind").selectOption("order");
     await page.locator("#history-search").fill("Shopify order #1680113");
+    assert.match(
+      await page.locator("#history-results").innerText(),
+      /old order/,
+    );
     await page.locator("[data-undo]").first().click();
     await page.locator("[data-confirm-undo]").click();
     await saved();
-    assert.equal(shop.value("RESIN"), afterOrder + 20);
+    assert.equal(shop.value("RESIN"), 101);
+    assert.equal(
+      shop.types.tank_board_movement[0].fields.find((f) => f.key === "undoes")
+        .value,
+      "legacy-order",
+    );
     checks++;
 
-    // Limited permissions are visible; no fallback recipes/counts or fake sales.
-    shop.denyOrders = true;
+    // Allocation and its last-run note come entirely from the settings sync JSON.
+    await nav("home");
+    const reservedBuild = await page.locator(".build-number").allTextContents();
+    assert.equal(
+      await page.locator("#reservation-note").textContent(),
+      "Parts for unshipped orders are set aside at each daily sync (last run 21 Oct, 6:51 am).",
+    );
+    assert.doesNotMatch(
+      await page.locator("#main").innerText(),
+      /Unshipped orders couldn.t be read/,
+    );
+    shop.settings = node("settings", "main", {
+      sync: { at: "2026-10-21T06:51:00+10:00", through: "302113" },
+    });
     await page.locator("[data-refresh]").click();
     await ready();
-    assert.match(
-      await page.locator("#main").innerText(),
-      /Unshipped orders couldn’t be read/,
+    const noReservedBuild = await page
+      .locator(".build-number")
+      .allTextContents();
+    assert.notDeepEqual(noReservedBuild, reservedBuild);
+    shop.settings = node("settings", "main", {
+      sync: {
+        at: "2026-10-21T06:51:00+10:00",
+        reserved: { RESIN: 20, TANK: 2 },
+      },
+    });
+    await page.locator("[data-refresh]").click();
+    await ready();
+    assert.deepEqual(
+      await page.locator(".build-number").allTextContents(),
+      reservedBuild,
     );
     checks++;
     await nav("home");
@@ -278,6 +336,18 @@ const root = path.resolve(__dirname, "..");
       /Delivery on the way · runs out before it lands/,
     );
     checks++;
+    for (const request of shop.requests) {
+      assert.ok(
+        [
+          "BoardObjects",
+          "BoardSettings",
+          "BoardPart",
+          "BoardRecord",
+          "BoardStock",
+        ].includes(request.op),
+      );
+      assert.doesNotMatch(request.query, /\borders?\s*\(/);
+    }
     assert.deepEqual(errors, []);
     fs.mkdirSync(path.join(root, "work"), { recursive: true });
     await nav("home");

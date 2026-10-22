@@ -89,9 +89,6 @@ function statusBanners() {
     `<div id="draft-storage-status" class="flow-alert error" role="alert" ${draftError ? "" : "hidden"}>${esc(draftError)}</div>` +
     (board.pending
       ? `<div class="flow-alert warning" role="alert">A save is unfinished: ${esc(board.pending.movement.summary)}. Keep using this device to finish it. Don’t enter the same change again. <button class="btn" data-resume>Check and finish save</button></div>`
-      : "") +
-    (board.ordersError
-      ? `<div class="flow-alert warning">${esc(board.ordersError)}</div>`
       : "")
   );
 }
@@ -102,7 +99,6 @@ async function load() {
   render();
   try {
     await board.refresh();
-    await board.refreshOrders();
     phase = "ready";
   } catch (e) {
     error = message(e);
@@ -142,7 +138,6 @@ async function save(build, resume = false) {
   try {
     const m = resume ? await board.resume() : await board.save(build);
     finishSuccess(m);
-    await board.refreshOrders();
     $("#modal").close();
     toast("Saved to Shopify. History keeps the record.");
   } catch (e) {
@@ -354,6 +349,11 @@ function buildWarning(result) {
   return `<div class="notice ${low.sev}">${icon("alert")}<div><strong>${esc(low.p.short_name)} has about ${low.w.toFixed(1)} weeks of cover</strong><p>${esc(p.name)} is holding it back. ${p.on_water > 0 ? (low.w * 7 < (p.lead_days ?? 0) ? "It will run out before the delivery lands. Stock is already on the way; check the delivery date." : "Stock is already on the way. Check the delivery date.") : reorderText(info)}${p.lead_days !== null ? " · Allow " + p.lead_days + " days to land." : ""}</p></div><button class="btn" data-part-focus="${esc(p.code)}">Check parts ${icon("arrow")}</button></div>`;
 }
 function home() {
+  const syncAt = tank_board_settings.sync?.at,
+    lastRun =
+      syncAt && !isNaN(Date.parse(syncAt))
+        ? `${date(syncAt)}, ${time(syncAt)}`
+        : "not recorded";
   const a = allocate(stockView === "after"),
     tanks = a.result.filter((r) =>
       ["SFR-TANK-10L", "SFR-TANK-15L"].includes(r.p.sku),
@@ -377,7 +377,7 @@ function home() {
       "Your parts, shared out to keep up with sales.",
       `<button class="btn" data-flow="count">${icon("count")}Count stock</button><button class="btn primary" data-flow="out">${icon("out")}Take stock out</button>`,
     ) +
-    `${parts.some((p) => p.on_hand === null) ? '<div class="flow-alert warning">Uncounted parts are treated as unlimited in the build estimate, as in the daily sync. Count them before taking stock out.</div>' : ""}${buildWarning(a.result)}<div class="summary"><div class="summary-item"><div class="label">${icon("drop")}Tanks you can build</div><strong class="num">${fmt(tankTotal)}</strong><small>Lite + Pro, shared parts</small></div><div class="summary-item"><div class="label">${icon("trends")}Sold in the last 30 days</div><strong class="num">${fmt(sales)}</strong><small>${change !== null ? `<span class="${change < 0 ? "down" : "up"}">${change < 0 ? "↓" : "↑"} ${Math.abs(change)}%</span>` : "Previous total: " + fmt(prev)} · across all products</small></div><div class="summary-item"><div class="label">${icon("truck")}Parts on the way</div><strong class="num">${parts.filter((p) => p.on_water > 0).length}</strong><small>part types awaiting delivery</small></div></div><div class="section-heading"><h2>Your build board <span class="muted small">· ${tank_board_product.length} products</span></h2><div class="segmented" role="group" aria-label="Stock to include"><button data-stock="now" aria-pressed="${stockView === "now"}">On hand</button><button data-stock="after" aria-pressed="${stockView === "after"}">After delivery</button></div></div>${stockView === "after" ? '<div class="flow-alert">Includes stock on the way. Only stock on hand can be built today.</div>' : ""}<div class="product-grid">${a.result.map(productCard).join("")}</div><details class="explanation"><summary>${icon("parts")} How these numbers are worked out</summary><p>Parts for visible unshipped orders are set aside first, except orders already taken off stock. Then, in sort order, each product gets up to two units where parts allow. The remaining parts go one unit at a time to the product with the lowest units divided by monthly sales, until it runs short of a part or its units reach or pass monthly sales × 12 ÷ 4.33. Ties follow the Shopify product sort order.</p><p>Cover is units ÷ last 30 days’ sales × 4.33. Blank part counts are unlimited for this calculation, matching the daily sync, but must be counted before taking stock out. On hold is separate from usable stock. Listed quantities are what the daily sync last made available in Shopify; this board does not change them.</p></details><div class="bottom-grid"><section class="panel"><div class="panel-head"><h2>Next on your list</h2><p>Counts, deliveries and parts to order.</p></div><div class="panel-body">${
+    `${parts.some((p) => p.on_hand === null) ? '<div class="flow-alert warning">Uncounted parts are treated as unlimited in the build estimate, as in the daily sync. Count them before taking stock out.</div>' : ""}${buildWarning(a.result)}<div class="summary"><div class="summary-item"><div class="label">${icon("drop")}Tanks you can build</div><strong class="num">${fmt(tankTotal)}</strong><small>Lite + Pro, shared parts</small></div><div class="summary-item"><div class="label">${icon("trends")}Sold in the last 30 days</div><strong class="num">${fmt(sales)}</strong><small>${change !== null ? `<span class="${change < 0 ? "down" : "up"}">${change < 0 ? "↓" : "↑"} ${Math.abs(change)}%</span>` : "Previous total: " + fmt(prev)} · across all products</small></div><div class="summary-item"><div class="label">${icon("truck")}Parts on the way</div><strong class="num">${parts.filter((p) => p.on_water > 0).length}</strong><small>part types awaiting delivery</small></div></div><div class="section-heading"><h2>Your build board <span class="muted small">· ${tank_board_product.length} products</span></h2><div class="segmented" role="group" aria-label="Stock to include"><button data-stock="now" aria-pressed="${stockView === "now"}">On hand</button><button data-stock="after" aria-pressed="${stockView === "after"}">After delivery</button></div></div>${stockView === "after" ? '<div class="flow-alert">Includes stock on the way. Only stock on hand can be built today.</div>' : ""}<div class="product-grid">${a.result.map(productCard).join("")}</div><p id="reservation-note" class="small muted">Parts for unshipped orders are set aside at each daily sync (last run ${esc(lastRun)}).</p><details class="explanation"><summary>${icon("parts")} How these numbers are worked out</summary><p>Parts set aside at the last daily sync are taken out of the pool first. Then, in sort order, each product gets up to two units where parts allow. The remaining parts go one unit at a time to the product with the lowest units divided by monthly sales, until it runs short of a part or its units reach or pass monthly sales × 12 ÷ 4.33. Ties follow the Shopify product sort order.</p><p>Cover is units ÷ last 30 days’ sales × 4.33. Blank part counts are unlimited for this calculation, matching the daily sync, but must be counted before taking stock out. On hold is separate from usable stock. Listed quantities are what the daily sync last made available in Shopify; this board does not change them.</p></details><div class="bottom-grid"><section class="panel"><div class="panel-head"><h2>Next on your list</h2><p>Counts, deliveries and parts to order.</p></div><div class="panel-body">${
       urgent
         .slice(0, 2)
         .map(
@@ -418,7 +418,7 @@ function reorderText(x) {
 function partsResults() {
   const rows = filteredParts();
   return rows.length
-    ? `<table class="part-table"><thead><tr><th>Part</th><th>On hand</th><th>On the way</th><th>On hold</th><th>Weeks left</th><th>Order by</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="part-first"><b>${esc(x.p.name)}</b><small>${esc(x.p.code)} <span class="supplier-name">· ${esc(x.p.supplier)}</span></small></td><td><span class="cell-num num">${fmt(x.p.on_hand)}</span> <span class="muted small">${litres(x.p.unit) ? "L" : ""}</span></td><td><span class="num ${x.p.on_water ? "up" : "muted"}">${fmt(x.p.on_water)}</span></td><td><span class="num muted">${fmt(x.p.on_hold)}</span></td><td><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></td><td><div class="order-date ${x.sev}">${reorderText(x)}</div><small>${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</small></td></tr>`).join("")}</tbody></table><div class="part-cards">${rows.map((x) => `<article class="part-card"><div class="row between"><div><h3>${esc(x.p.name)}</h3><div class="small muted">${esc(x.p.code)} · ${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</div></div><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></div><div class="part-stocks"><div><b class="num">${fmt(x.p.on_hand)}${litres(x.p.unit) ? " L" : ""}</b>On hand</div><div><b class="num ${x.p.on_water ? "up" : ""}">${fmt(x.p.on_water)}</b>On the way</div><div><b class="num">${fmt(x.p.on_hold)}</b>On hold</div></div><div class="part-reorder ${x.sev}"><span>${reorderText(x)}</span>${x.p.on_water ? `<button class="text-btn" data-receive="${esc(x.p.code)}">Receive →</button>` : ""}</div></article>`).join("")}</div><div class="data-note">Weeks left use all products’ sales and visible unshipped orders. Reorder dates count stock on the way as coming and use each part’s lead time. Delivery warnings compare shelf cover with that lead time; no actual arrival date is stored. On hold is separate from usable stock.</div>`
+    ? `<table class="part-table"><thead><tr><th>Part</th><th>On hand</th><th>On the way</th><th>On hold</th><th>Weeks left</th><th>Order by</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="part-first"><b>${esc(x.p.name)}</b><small>${esc(x.p.code)} <span class="supplier-name">· ${esc(x.p.supplier)}</span></small></td><td><span class="cell-num num">${fmt(x.p.on_hand)}</span> <span class="muted small">${litres(x.p.unit) ? "L" : ""}</span></td><td><span class="num ${x.p.on_water ? "up" : "muted"}">${fmt(x.p.on_water)}</span></td><td><span class="num muted">${fmt(x.p.on_hold)}</span></td><td><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></td><td><div class="order-date ${x.sev}">${reorderText(x)}</div><small>${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</small></td></tr>`).join("")}</tbody></table><div class="part-cards">${rows.map((x) => `<article class="part-card"><div class="row between"><div><h3>${esc(x.p.name)}</h3><div class="small muted">${esc(x.p.code)} · ${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</div></div><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></div><div class="part-stocks"><div><b class="num">${fmt(x.p.on_hand)}${litres(x.p.unit) ? " L" : ""}</b>On hand</div><div><b class="num ${x.p.on_water ? "up" : ""}">${fmt(x.p.on_water)}</b>On the way</div><div><b class="num">${fmt(x.p.on_hold)}</b>On hold</div></div><div class="part-reorder ${x.sev}"><span>${reorderText(x)}</span>${x.p.on_water ? `<button class="text-btn" data-receive="${esc(x.p.code)}">Receive →</button>` : ""}</div></article>`).join("")}</div><div class="data-note">Weeks left use all products’ sales and the parts set aside at the last daily sync. Reorder dates count stock on the way as coming and use each part’s lead time. Delivery warnings compare shelf cover with that lead time; no actual arrival date is stored. On hold is separate from usable stock.</div>`
     : '<div class="empty">No parts match. Try another name or filter.</div>';
 }
 function partsPage() {
@@ -541,7 +541,7 @@ function outFlow() {
   return flowShell(
     "Take stock out",
     "Choose a product. All its parts come off together.",
-    `<div class="field"><label for="out-sku">What’s leaving?</label><select id="out-sku">${tank_board_product.map((p) => `<option value="${esc(p.sku)}" ${p.sku === outSku ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div><div class="field"><label for="out-qty">How many?</label>${quantity("out-qty", outQty, 1, 1, "Product quantity")}</div><div class="field"><label>Why?</label><div class="reasons" role="group" aria-label="Reason for stock out">${["order", "gift", "sample", "faulty"].map((k) => `<button type="button" data-why="${k}" aria-pressed="${outWhy === k}">${whyLabels[k]}</button>`).join("")}</div></div><div id="order-note" class="flow-alert warning" ${outWhy !== "order" ? "hidden" : ""}>Shopify orders come off in the daily sync. Enter the Shopify order number; the board checks its number against earlier History before saving, excluding entries that were put back. Use the full order quantity. Orders with several board products must be left to the sync.</div><div class="field"><label for="out-who">${outWhy === "order" ? "Order number or full Shopify name" : "Who or a short note"} ${outWhy === "order" ? "" : "(optional)"}</label><input id="out-who" value="${esc(outWho)}" placeholder="${outWhy === "order" ? "e.g. 1651 or #1651113" : "e.g. Local detailer"}"></div><div id="out-preview">${outPreview()}</div><div id="out-error" class="small down" role="alert"></div>`,
+    `<div class="field"><label for="out-sku">What’s leaving?</label><select id="out-sku">${tank_board_product.map((p) => `<option value="${esc(p.sku)}" ${p.sku === outSku ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div><div class="field"><label for="out-qty">How many?</label>${quantity("out-qty", outQty, 1, 1, "Product quantity")}</div><div class="field"><label>Why?</label><div class="reasons" role="group" aria-label="Reason for stock out">${["gift", "sample", "faulty"].map((k) => `<button type="button" data-why="${k}" aria-pressed="${outWhy === k}">${whyLabels[k]}</button>`).join("")}</div></div><div class="field"><label for="out-who">Who or a short note (optional)</label><input id="out-who" value="${esc(outWho)}" placeholder="e.g. Local detailer"></div><div id="out-preview">${outPreview()}</div><div id="out-error" class="small down" role="alert"></div>`,
     `<small>Saves to Shopify with a History entry.</small><button class="btn primary" id="save-out" data-save-out ${!outPlan().valid || outPlan().over.length ? "disabled" : ""}>${icon("out")}Take ${Number(outQty) || 0} out of stock</button>`,
   );
 }
@@ -570,7 +570,7 @@ function actionsPage() {
     ) +
     `<div class="action-choices">${[
       ["count", "count", "Count stock", "Garage + shed"],
-      ["out", "out", "Take stock out", "Order, gift, sample or faulty"],
+      ["out", "out", "Take stock out", "Gift, sample or faulty"],
       ["receive", "in", "Receive delivery", "Move it onto the shelf"],
       ["putback", "back", "Put back or undo", "Fix a change, keep a record"],
     ]
@@ -885,20 +885,7 @@ document.addEventListener("click", async (e) => {
       who: outWho.trim(),
       recipe: JSON.stringify(shown.p.parts),
     };
-    await save(async () => {
-      let order;
-      if (selected.why === "order") {
-        order = await board.manualOrder(
-          selected.who,
-          selected.sku,
-          selected.qty,
-        );
-        await board.refresh();
-        if (TankBoard.alreadyRecorded(order, movements))
-          throw new Error(
-            "That order has just been recorded. It cannot come off twice.",
-          );
-      }
+    await save(() => {
       const plan = outPlan(selected.sku, selected.qty);
       if (
         !plan.valid ||
@@ -914,8 +901,8 @@ document.addEventListener("click", async (e) => {
         changes: plan.changes,
         sku: selected.sku,
         qty: selected.qty,
-        who: order ? "Shopify order " + order.name : selected.who,
-        orders: order ? [Number(TankBoard.orderNumber(order))] : [],
+        who: selected.who,
+        orders: [],
         value: plan.changes.reduce(
           (s, c) => s - c.delta * byCode(c.code).unit_cost,
           0,

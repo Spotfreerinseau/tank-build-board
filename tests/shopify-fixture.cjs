@@ -111,23 +111,16 @@ class Shopify {
     };
     this.settings = node("settings", "main", {
       sales_window: "Last complete 30 days",
-      sync: { at: "2026-10-21T06:51:00+10:00", through: "302113" },
-    });
-    this.orders = [
-      {
-        id: "gid://shopify/Order/9002",
-        name: "#1680113",
-        cancelledAt: null,
-        lines: [
-          { sku: "SFR-TANK-10L", currentQuantity: 2, unfulfilledQuantity: 2 },
-        ],
+      sync: {
+        at: "2026-10-21T06:51:00+10:00",
+        through: "302113",
+        reserved: { RESIN: 20, TANK: 2 },
       },
-    ];
+    });
     this.writes = [];
     this.requests = [];
     this.before = null;
     this.after = null;
-    this.denyOrders = false;
     this.pageSize = 250;
   }
   part(code) {
@@ -152,6 +145,8 @@ class Shopify {
     const op = /(?:query|mutation) (\w+)/.exec(query)[1];
     const request = { op, query, v };
     this.requests.push(request);
+    if (/\borders?\s*\(/.test(query))
+      throw Error("Order access is not available to this app");
     if (this.before) {
       const response = await this.before(request);
       if (response) return response;
@@ -176,30 +171,7 @@ class Shopify {
           this.types.tank_board_part.find((p) => p.id === v.id),
         ),
       };
-    else if (op === "BoardOrders") {
-      if (this.denyOrders)
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            errors: [{ message: "Access denied for orders field" }],
-          }),
-        };
-      const nodes = this.orders
-        .filter(
-          (o) => !v.search.startsWith("name:") || o.name === v.search.slice(5),
-        )
-        .map((o) => ({
-          ...o,
-          lineItems: {
-            nodes: o.lines,
-            pageInfo: { hasNextPage: false, endCursor: null },
-          },
-        }));
-      data = {
-        orders: { nodes, pageInfo: { hasNextPage: false, endCursor: null } },
-      };
-    } else if (op === "BoardRecord") {
+    else if (op === "BoardRecord") {
       if (v.handle.type !== "tank_board_movement")
         throw Error("Wrong write type");
       const list = this.types.tank_board_movement;

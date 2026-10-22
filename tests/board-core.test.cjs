@@ -34,21 +34,23 @@ test("Shopify reader preserves schema, null counts, new product fields and Extre
   assert.ok(shop.requests.filter((r) => r.op === "BoardObjects").length > 3);
   assert.equal(shop.writes.length, 0);
 });
-test("shared parts reserve visible unshipped orders before allocation and avoid manually deducted orders", async () => {
-  const { board } = setup();
+test("settings sync reservations are used unchanged by the shared-parts allocation", async () => {
+  const { board, shop } = setup();
   await board.refresh();
-  await board.refreshOrders();
-  assert.deepEqual(board.reservations(), { RESIN: 20, TANK: 2 });
-  const result = T.allocate(
+  const reserved = { RESIN: 20, TANK: 2 };
+  assert.deepEqual(board.reservations(), reserved);
+  const before = JSON.stringify(shop.settings);
+  const allocation = T.allocate(
     board.parts,
     board.products,
     board.reservations(),
-  ).result;
-  assert.equal(result[0].n * 10 + result[1].n * 15 <= 85, true);
-  assert.equal(result[2].unknown, false);
-  assert.ok(result[2].uncounted.includes("CAP"));
-  board.movements.push({ kind: "order", orders: [1680113], who: "" });
-  assert.deepEqual(board.reservations(), {});
+  );
+  assert.ok(allocation.result[0].n * 10 + allocation.result[1].n * 15 <= 85);
+  assert.equal(allocation.result[2].unknown, false);
+  assert.ok(allocation.result[2].uncounted.includes("CAP"));
+  assert.deepEqual(board.reservations(), reserved);
+  assert.equal(JSON.stringify(shop.settings), before);
+  assert.equal(shop.writes.length, 0);
 });
 test("allocation conserves parts, honours sort-order floor and exact 4.33 stopping threshold over independent random scenarios", () => {
   let seed = 41;
@@ -148,131 +150,96 @@ test("zero-sales products only receive the floor; unknown and invalid recipes ne
   );
   assert.deepEqual(T.recipe([{ code: "a", qty: 0 }]), []);
 });
-test("dedupe uses order numbers or who substring on any movement, excluding put-back entries", () => {
-  const order = { id: "gid://shopify/Order/9002", name: "#1680113" };
-  assert.equal(T.orderNumber(order), "1680113");
-  assert.equal(T.orderNumber({ ...order, number: 1680 }), "1680113");
-  for (const m of [
-    { orders: [1680113] },
-    { orders: ["1680113"] },
-    { kind: "gift", who: "A gift for #1680113" },
-    { kind: "order", who: "#1680113" },
-  ])
-    assert.equal(T.alreadyRecorded(order, [m]), true, JSON.stringify(m));
-  assert.equal(
-    T.alreadyRecorded(order, [{ orders: [9002], who: "#304113" }]),
-    false,
-  );
-  assert.equal(
-    T.alreadyRecorded(order, [
-      { handle: "out", orders: [1680113] },
-      { undoes: "out" },
-    ]),
-    false,
-  );
-  assert.equal(
-    T.alreadyRecorded(order, [{ who: "Shopify orders #300–305" }]),
-    false,
-  );
-});
-test("real-style sync lists prevent duplicate deductions inside a grouped who range", async () => {
+test("older sync settings without reserved use no reservations; refresh picks up the next snapshot", async () => {
   const { board, shop } = setup();
-  const recent = [1678113, 1679113, 1680113];
-  const range = [1671113, 1672113, 1673113, 1674113, 1675113, 1676113, 1677113];
-  shop.types.tank_board_movement = [
-    node("sync-recent", "sync-recent", {
-      kind: "order",
-      recorded_by: "Daily sync",
-      orders: recent,
-      who: "",
-    }),
-    node("sync-range", "sync-range", {
-      kind: "order",
-      recorded_by: "Daily sync",
-      orders: range,
-      who: "Shopify orders #1671113 to #1677113",
-    }),
-  ];
-  shop.settings = node("settings", "main", { sync: { through: 1680113 } });
-  const template = shop.orders[0];
-  shop.orders = [...range, ...recent].map((number) => ({
-    ...template,
-    name: "#" + number,
-  }));
-  await board.refresh();
-  await board.refreshOrders();
-  assert.equal(board.settings.sync.through, 1680113);
-  assert.deepEqual(board.reservations(), {});
-  for (const number of [...range, ...recent]) {
-    const order = { name: "#" + number };
-    assert.equal(
-      T.alreadyRecorded(order, board.movements),
-      true,
-      String(number),
-    );
-    await assert.rejects(
-      () => board.manualOrder(String(number), "SFR-TANK-10L", 2),
-      /already in History/,
+  for (const sync of [
+    null,
+    { at: "2026-10-21T06:51:00+10:00" },
+    { reserved: {} },
+  ]) {
+    shop.settings = node("settings", "main", { sync });
+    await board.refresh();
+    assert.deepEqual(board.reservations(), {});
+    assert.deepEqual(
+      T.allocate(board.parts, board.products, board.reservations()),
+      T.allocate(board.parts, board.products),
     );
   }
-  await assert.rejects(
-    () => board.manualOrder("1680", "SFR-TANK-10L", 2),
-    /already in History/,
-  );
-  await assert.rejects(
-    () => board.manualOrder("1674", "SFR-TANK-10L", 2),
-    /already in History/,
-  );
-  assert.equal(
-    T.alreadyRecorded({ name: "#1674113" }, [
-      ...board.movements,
-      { undoes: "sync-range" },
-    ]),
-    false,
-  );
-  assert.equal(shop.writes.length, 0);
-});
-test("manual lookup accepts short and full digits with or without # and returns the full identity", async () => {
-  const { board, shop } = setup();
-  await board.refresh();
-  for (const input of ["1680", "1680113", "#1680", "#1680113"]) {
-    const order = await board.manualOrder(input, "SFR-TANK-10L", 2);
-    assert.equal(order.id, shop.orders[0].id);
-    assert.equal(T.orderNumber(order), "1680113", input);
-  }
-  assert.equal(shop.writes.length, 0);
-});
-test("orders permission failure is explicit; no order or stock fixtures are substituted", async () => {
-  const { board, shop } = setup();
-  await board.refresh();
-  shop.denyOrders = true;
-  await board.refreshOrders();
-  assert.deepEqual(board.orders, []);
-  assert.match(board.ordersError, /may differ/);
-  await assert.rejects(
-    () => board.manualOrder("#1680113", "SFR-TANK-10L", 2),
-    /Access denied/,
-  );
-  assert.equal(shop.writes.length, 0);
-});
-test("manual orders are resolved against Shopify and must cover all tracked products and quantities", async () => {
-  const { board, shop } = setup();
-  await board.refresh();
-  const order = await board.manualOrder("1680", "SFR-TANK-10L", 2);
-  assert.equal(order.id, shop.orders[0].id);
-  await assert.rejects(
-    () => board.manualOrder("#1680113", "SFR-TANK-10L", 1),
-    /full quantity/,
-  );
-  board.movements.push({
-    kind: "order",
-    who: "Shopify order #1680113",
-    orders: [],
+  const reserved = { RSN: 10, "TNK-817": 1 };
+  shop.settings = node("settings", "main", {
+    sync: { at: "2026-10-22T06:51:00+10:00", reserved },
   });
-  await assert.rejects(
-    () => board.manualOrder("#1680113", "SFR-TANK-10L", 2),
-    /already in History/,
+  await board.refresh();
+  assert.deepEqual(board.reservations(), reserved);
+});
+test("the board only requests metaobjects and has no order access methods", async () => {
+  const { board, shop } = setup();
+  await board.refresh();
+  await board.save(() => stockOut(board));
+  for (const request of shop.requests) {
+    assert.ok(
+      [
+        "BoardObjects",
+        "BoardSettings",
+        "BoardPart",
+        "BoardRecord",
+        "BoardStock",
+      ].includes(request.op),
+    );
+    assert.doesNotMatch(request.query, /\borders?\s*\(/);
+  }
+  assert.equal(board.readOrders, undefined);
+  assert.equal(board.refreshOrders, undefined);
+  assert.equal(board.manualOrder, undefined);
+});
+test("legacy order movements retain their fields and undo using metaobjects only", async () => {
+  const { board, shop } = setup();
+  const orders = [1678113, 1679113, 1680113];
+  shop.types.tank_board_movement.push(
+    node("legacy-order", "legacy-order", {
+      kind: "order",
+      recorded_by: T.BY,
+      summary: "2 Lite tanks taken out",
+      who: "Shopify order #1680113",
+      sku: "SFR-TANK-10L",
+      qty: 2,
+      orders,
+      changes: [
+        { code: "RESIN", delta: -20 },
+        { code: "TANK", delta: -2 },
+      ],
+    }),
   );
+  await board.refresh();
+  const original = board.movements.find((m) => m.handle === "legacy-order");
+  assert.deepEqual(original.orders, orders);
+  assert.equal(T.canUndo(original, board.movements), true);
+  assert.equal(
+    T.canUndo(
+      board.movements.find((m) => m.recorded_by === "Daily sync"),
+      board.movements,
+    ),
+    false,
+  );
+  const settingsBefore = JSON.stringify(shop.settings);
+  const undo = await board.save(() => ({
+    kind: "putback",
+    summary: "Undid: " + original.summary,
+    undoes: original.handle,
+    sku: original.sku,
+    qty: original.qty,
+    changes: T.undoChanges(original, board.parts),
+  }));
+  assert.equal(undo.undoes, "legacy-order");
+  assert.equal(shop.value("RESIN"), 125);
+  assert.equal(shop.value("TANK"), 22);
+  assert.equal(T.canUndo(original, board.movements), false);
+  assert.deepEqual(
+    board.movements.find((m) => m.handle === "legacy-order").orders,
+    orders,
+  );
+  assert.deepEqual(board.reservations(), { RESIN: 20, TANK: 2 });
+  assert.equal(JSON.stringify(shop.settings), settingsBefore);
 });
 test("every stock write has a movement first and never changes sync-owned fields", async () => {
   const { board, shop } = setup();
