@@ -112,41 +112,6 @@
     };
   }
 
-  // The sync stores every digit of the Shopify name, including the 113 suffix.
-  function orderNumber(order) {
-    return String(order.name || "").replace(/^#/, "");
-  }
-  function alreadyRecorded(order, movements) {
-    const number = orderNumber(order);
-    const undone = new Set(
-      movements.filter((m) => m.undoes).map((m) => m.undoes),
-    );
-    return movements.some((m) => {
-      if (undone.has(m.handle)) return false;
-      // This intentionally uses the sync's substring rule, including the 113 suffix.
-      const refs = Array.isArray(m.orders) ? m.orders : [];
-      return (
-        refs.some((r) => String(r) === number) ||
-        (number !== "" && String(m.who || "").includes("#" + number))
-      );
-    });
-  }
-
-  function reserveParts(products, orders, movements) {
-    const result = {};
-    for (const o of orders) {
-      if (o.cancelledAt || alreadyRecorded(o, movements)) continue;
-      for (const line of o.lines) {
-        const p = products.find((p) => p.sku === line.sku);
-        if (!p) continue;
-        for (const i of p.parts)
-          result[i.code] =
-            (result[i.code] || 0) + i.qty * line.unfulfilledQuantity;
-      }
-    }
-    return result;
-  }
-
   function allocate(parts, products, reservations = {}, includeWater = false) {
     const pool = Object.fromEntries(
       parts.map((p) => [
@@ -269,8 +234,6 @@
       this.products = [];
       this.movements = [];
       this.settings = {};
-      this.orders = [];
-      this.ordersError = "";
       this.loadedAt = null;
       this.pending = this.readStored("pending", null);
       this.onUpdate = () => {};
@@ -322,7 +285,7 @@
         );
       if (response.status === 403)
         fail(
-          "Shopify hasn’t allowed this request. Check the app’s metaobject and order permissions.",
+          "Shopify hasn’t allowed this request. Check the app’s metaobject permissions.",
         );
       if (!response.ok)
         fail(
@@ -376,95 +339,13 @@
       this.onUpdate();
       return this;
     }
-    async readOrders(
-      search = "fulfillment_status:unfulfilled OR fulfillment_status:partial",
-    ) {
-      const orders = [];
-      let after = null;
-      do {
-        const data = await this.api(
-          `query BoardOrders($after: String, $search: String!) { orders(first: 100, after: $after, query: $search) { nodes { id name cancelledAt lineItems(first: 250) { nodes { sku currentQuantity unfulfilledQuantity } pageInfo { hasNextPage endCursor } } } pageInfo { hasNextPage endCursor } } }`,
-          { after, search },
-        );
-        for (const o of data.orders.nodes) {
-          const lines = [...o.lineItems.nodes];
-          let cursor = o.lineItems.pageInfo.hasNextPage
-            ? o.lineItems.pageInfo.endCursor
-            : null;
-          while (cursor) {
-            const extra = await this.api(
-              `query BoardOrderLines($id: ID!, $after: String) { order(id: $id) { lineItems(first: 250, after: $after) { nodes { sku currentQuantity unfulfilledQuantity } pageInfo { hasNextPage endCursor } } } }`,
-              { id: o.id, after: cursor },
-            );
-            lines.push(...extra.order.lineItems.nodes);
-            cursor = extra.order.lineItems.pageInfo.hasNextPage
-              ? extra.order.lineItems.pageInfo.endCursor
-              : null;
-          }
-          orders.push({
-            id: o.id,
-            name: o.name,
-            cancelledAt: o.cancelledAt,
-            lines,
-          });
-        }
-        after = data.orders.pageInfo.hasNextPage
-          ? data.orders.pageInfo.endCursor
-          : null;
-      } while (after);
-      return orders;
-    }
-    async refreshOrders() {
-      try {
-        this.orders = await this.readOrders();
-        this.ordersError = "";
-      } catch (e) {
-        this.orders = [];
-        this.ordersError =
-          "Unshipped orders couldn’t be read. Build quantities exclude their reserved parts and may differ from the daily sync. " +
-          e.message;
-      }
-      this.onUpdate();
-    }
     reservations() {
-      return reserveParts(this.products, this.orders, this.movements);
-    }
-    async manualOrder(who, sku, qty) {
-      if (!/^#?\d+$/.test(who.trim()))
-        fail("Enter the Shopify order number, such as #1843.");
-      const typed = who.trim().replace(/^#/, "");
-      // Accept a short reference or the full digits, with or without #.
-      // Resolve against Shopify before deciding which number to store.
-      const names = typed.endsWith("113")
-        ? ["#" + typed, "#" + typed + "113"]
-        : ["#" + typed + "113", "#" + typed];
-      let order;
-      for (const name of names) {
-        const matches = await this.readOrders("name:" + name);
-        order = matches.find((o) => o.name === name);
-        if (order) break;
-      }
-      if (!order || order.cancelledAt)
-        fail(
-          "That order wasn’t found or has been cancelled. Check the order number in Shopify.",
-        );
-      if (alreadyRecorded(order, this.movements))
-        fail(
-          "That order is already in History and has not been put back. It cannot come off stock twice.",
-        );
-      const tracked = order.lines.filter(
-        (l) =>
-          this.products.some((p) => p.sku === l.sku) && l.currentQuantity > 0,
-      );
-      if (
-        !tracked.length ||
-        tracked.some((l) => l.sku !== sku) ||
-        tracked.reduce((s, l) => s + l.currentQuantity, 0) !== qty
-      )
-        fail(
-          "Choose the product and full quantity for this order. Orders with several board products must be left to the daily sync so nothing is missed.",
-        );
-      return order;
+      const reserved = this.settings.sync?.reserved;
+      return reserved &&
+        typeof reserved === "object" &&
+        !Array.isArray(reserved)
+        ? reserved
+        : {};
     }
     async mutation(operation, variables) {
       const data = await this.api(operation, variables);
@@ -647,9 +528,6 @@
     normalise,
     recipe,
     allocate,
-    orderNumber,
-    alreadyRecorded,
-    reserveParts,
     canUndo,
     undoChanges,
     same,
