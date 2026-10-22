@@ -1,0 +1,3325 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light" />
+    <title>Tank Build Board · Design preview</title>
+    <style>
+      :root {
+        --bg: #f3f3f1;
+        --surface: #fff;
+        --ink: #252724;
+        --muted: #666c65;
+        --line: #e6e7e3;
+        --green: #176647;
+        --green-bg: #e5f3eb;
+        --red: #b83930;
+        --red-bg: #fff0ed;
+        --amber: #865b0c;
+        --amber-bg: #fff4da;
+        --blue: #416bad;
+        --shadow: 0 1px 2px #19281c08, 0 3px 8px #19281c03;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        cursor: pointer;
+      }
+      button {
+        color: inherit;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      a {
+        color: var(--green);
+      }
+      button:focus-visible,
+      a:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid #528ce2;
+        outline-offset: 3px;
+      }
+      input:focus,
+      select:focus {
+        outline: 2px solid #528ce2;
+        outline-offset: 1px;
+      }
+      button svg {
+        pointer-events: none;
+      }
+      svg {
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      .icon {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.65;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.025em;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+      .skip {
+        position: fixed;
+        top: -80px;
+        left: 12px;
+        background: white;
+        padding: 12px;
+        z-index: 100;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.25;
+        letter-spacing: -1px;
+        font-weight: 670;
+      }
+      h2 {
+        font-size: 17px;
+        letter-spacing: -0.35px;
+        font-weight: 650;
+      }
+      h3 {
+        font-size: 15px;
+        font-weight: 650;
+      }
+      p + p {
+        margin-top: 8px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .between {
+        justify-content: space-between;
+      }
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+      .btn {
+        border: 1px solid #d7dad4;
+        border-radius: 8px;
+        min-height: 44px;
+        padding: 10px 15px;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 1px #00000006;
+        text-decoration: none;
+      }
+      .btn:hover {
+        background: #f8f9f6;
+      }
+      .btn.primary {
+        background: #30382f;
+        border-color: #30382f;
+        color: white;
+        box-shadow:
+          inset 0 1px 0 #ffffff24,
+          0 1px 2px #0002;
+      }
+      .btn.primary:hover {
+        background: #1d271d;
+      }
+      .btn.green {
+        background: var(--green);
+        border-color: var(--green);
+        color: #fff;
+      }
+      .btn.quiet {
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+      }
+      .btn.compact {
+        padding: 7px 11px;
+        min-height: 36px;
+      }
+      .text-btn {
+        padding: 10px 0;
+        border: 0;
+        background: transparent;
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 600;
+        min-height: 44px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.5;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #f0f1ed;
+        white-space: nowrap;
+      }
+      .pill.red {
+        background: #fee2db;
+        color: #9c3026;
+      }
+      .pill.amber {
+        background: #ffedbf;
+        color: #75520b;
+      }
+      .pill.green {
+        background: #ddf1e4;
+        color: #1b6340;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        display: inline-block;
+      }
+      .up {
+        color: var(--green);
+      }
+      .down {
+        color: var(--red);
+      }
+      .preview {
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        background: #e5ebe3;
+        color: #496046;
+        font-size: 11px;
+        border-bottom: 1px solid #dce2d8;
+        position: relative;
+        z-index: 4;
+      }
+      .preview b {
+        font-weight: 650;
+      }
+      .preview button {
+        position: absolute;
+        right: 20px;
+        border: 0;
+        background: none;
+        color: #405b3e;
+        font-size: 11px;
+        text-decoration: underline;
+        min-height: 30px;
+      }
+      .sidebar {
+        width: 218px;
+        position: fixed;
+        left: 0;
+        top: 35px;
+        bottom: 0;
+        background: #ebece8;
+        border-right: 1px solid #e0e2db;
+        display: flex;
+        flex-direction: column;
+        padding: 28px 14px 18px;
+        z-index: 3;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 0 8px 31px;
+      }
+      .brand-mark {
+        width: 35px;
+        height: 39px;
+        background: #244e37;
+        border-radius: 10px 10px 13px 13px;
+        color: white;
+        display: grid;
+        place-items: center;
+        box-shadow: inset 0 0 0 1px #fff2;
+      }
+      .brand strong {
+        font-size: 14px;
+        letter-spacing: -0.4px;
+        display: block;
+      }
+      .brand small {
+        font-size: 10px;
+        color: var(--muted);
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+      }
+      .nav-label {
+        font-size: 10px;
+        color: #7c8079;
+        letter-spacing: 1px;
+        font-weight: 600;
+        padding: 0 13px 11px;
+      }
+      .nav {
+        display: grid;
+        gap: 5px;
+      }
+      .nav button {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 11px 13px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #5e645b;
+        font-weight: 550;
+        text-align: left;
+        min-height: 45px;
+      }
+      .nav button:hover {
+        background: #e2e6dd;
+      }
+      .nav button[aria-current="page"] {
+        background: #d9e6d5;
+        color: #254c2e;
+        box-shadow: 0 1px 2px #00000003;
+      }
+      .nav button .nav-count {
+        margin-left: auto;
+        border-radius: 5px;
+        min-width: 20px;
+        text-align: center;
+        background: #f3d9b1;
+        color: #795015;
+        font-size: 10px;
+        padding: 1px 4px;
+      }
+      .sidebar-bottom {
+        margin-top: auto;
+      }
+      .sidebar-note {
+        margin: 20px 10px;
+        padding: 13px 0;
+        border-top: 1px solid #d9ddd4;
+        font-size: 11px;
+        color: #747a70;
+      }
+      .person {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 4px 9px;
+      }
+      .avatar {
+        width: 31px;
+        height: 31px;
+        border-radius: 9px;
+        background: #d7dfcb;
+        display: grid;
+        place-items: center;
+        color: #506347;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .person strong {
+        display: block;
+        font-size: 12px;
+      }
+      .person small {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .main-shell {
+        margin-left: 218px;
+      }
+      .topbar {
+        height: 69px;
+        border-bottom: 1px solid #e4e5e0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 38px;
+        background: #f9faf7;
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #71776c;
+        font-size: 12px;
+      }
+      .breadcrumb b {
+        font-weight: 500;
+        color: #363d33;
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 17px;
+        color: #747a70;
+        font-size: 11px;
+      }
+      .sync-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: #2e8c5a;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+      .mobile-brand {
+        display: none;
+      }
+      .content {
+        max-width: 1280px;
+        margin: auto;
+        padding: 33px 38px 24px;
+      }
+      .page-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 25px;
+      }
+      .page-heading p {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .heading-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 3px;
+      }
+      .eyebrow {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 650;
+        color: #7d8477;
+        margin-bottom: 7px;
+      }
+      .panel {
+        background: white;
+        border: 1px solid #e1e4dc;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .panel-head {
+        padding: 19px 21px 15px;
+      }
+      .panel-head p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .panel-body {
+        padding: 0 21px 21px;
+      }
+      .notice {
+        border: 1px solid #f2c9bd;
+        background: #fff6f2;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 17px 19px;
+        margin-bottom: 23px;
+      }
+      .notice > .icon {
+        color: #ba4a32;
+        background: #ffe5db;
+        border-radius: 50%;
+        box-sizing: content-box;
+        padding: 7px;
+        width: 18px;
+        height: 18px;
+      }
+      .notice strong {
+        font-size: 13px;
+        font-weight: 650;
+      }
+      .notice p {
+        font-size: 12px;
+        color: #916458;
+        margin-top: 2px;
+      }
+      .notice .btn {
+        margin-left: auto;
+        background: #fffaf8;
+        border-color: #e6c9bd;
+        white-space: nowrap;
+        font-size: 12px;
+        min-height: 37px;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 28px;
+      }
+      .summary-item {
+        padding: 0 22px;
+        border-left: 1px solid #dfe2d9;
+      }
+      .summary-item:first-child {
+        padding-left: 2px;
+        border-left: 0;
+      }
+      .summary-item .label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .summary-item strong {
+        font-size: 27px;
+        font-weight: 650;
+        line-height: 1.2;
+      }
+      .summary-item small {
+        font-size: 11px;
+        margin-left: 9px;
+        color: var(--muted);
+      }
+      .section-heading {
+        margin-bottom: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .section-heading h2 {
+        font-size: 15px;
+      }
+      .segmented {
+        display: inline-flex;
+        border: 1px solid #dfe2d9;
+        border-color: #dfe2d9;
+        padding: 3px;
+        border-radius: 8px;
+        background: #e9ece5;
+        gap: 2px;
+      }
+      .segmented button {
+        min-height: 32px;
+        padding: 5px 11px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        font-size: 11px;
+        color: #666e5f;
+        font-weight: 550;
+      }
+      .segmented button[aria-pressed="true"] {
+        background: #fff;
+        color: #343d2e;
+        box-shadow: 0 1px 3px #1d281a18;
+      }
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .product {
+        grid-column: span 3;
+        overflow: hidden;
+      }
+      .product.secondary {
+        grid-column: span 2;
+      }
+      .product-main {
+        padding: 21px 22px 18px;
+        position: relative;
+        overflow: hidden;
+      }
+      .product-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        position: relative;
+        z-index: 1;
+      }
+      .product-title {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+      }
+      .product-title .mini-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: #f2f3ee;
+        color: #76806c;
+        display: grid;
+        place-items: center;
+      }
+      .product-title small {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .product-title h3 {
+        font-size: 15px;
+        letter-spacing: -0.3px;
+      }
+      .product-numbers {
+        display: flex;
+        align-items: flex-end;
+        gap: 28px;
+        margin-top: 19px;
+        position: relative;
+        z-index: 1;
+      }
+      .product-numbers .build-number {
+        font-size: 48px;
+        line-height: 1.05;
+        font-weight: 620;
+        letter-spacing: -2px;
+      }
+      .product-numbers .sale-number {
+        font-size: 25px;
+        line-height: 1.2;
+        font-weight: 550;
+        letter-spacing: -0.6px;
+      }
+      .product-numbers .metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 5px;
+      }
+      .sale {
+        padding-bottom: 2px;
+      }
+      .tank-art {
+        position: absolute;
+        right: 15px;
+        bottom: 7px;
+        width: 83px;
+        height: 120px;
+        opacity: 0.87;
+        filter: drop-shadow(0 5px 3px #26372510);
+      }
+      .product-cover {
+        padding: 0 22px 15px;
+      }
+      .cover-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .cover-line b {
+        font-weight: 600;
+        color: #444d3c;
+      }
+      .cover-track {
+        height: 5px;
+        background: #ebeee7;
+        border-radius: 4px;
+        margin: 8px 0 10px;
+        overflow: hidden;
+      }
+      .cover-track i {
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background: #b0c698;
+      }
+      .product.red .cover-track i {
+        background: #d68475;
+      }
+      .product.amber .cover-track i {
+        background: #c6ab66;
+      }
+      .trend-caption {
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .trend-caption b {
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .product-foot {
+        border-top: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 10px 22px;
+        background: #fcfdfa;
+        font-size: 11px;
+        min-height: 44px;
+      }
+      .product-foot span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #68715f;
+      }
+      .product-foot .icon {
+        width: 14px;
+        height: 14px;
+      }
+      .product-foot button {
+        border: 0;
+        background: transparent;
+        font-size: 11px;
+        color: #66765a;
+        min-height: 26px;
+        padding: 2px 0 2px 6px;
+      }
+      .product-foot button:hover {
+        text-decoration: underline;
+      }
+      .secondary .product-main {
+        padding: 18px 19px 15px;
+      }
+      .secondary .product-title h3 {
+        font-size: 13px;
+      }
+      .secondary .product-title .mini-icon {
+        display: none;
+      }
+      .secondary .product-numbers {
+        margin-top: 18px;
+        gap: 25px;
+      }
+      .secondary .build-number {
+        font-size: 36px;
+        letter-spacing: -1.4px;
+      }
+      .secondary .sale-number {
+        font-size: 21px;
+      }
+      .secondary .product-cover {
+        padding: 0 19px 13px;
+      }
+      .secondary .product-foot {
+        padding: 9px 19px;
+      }
+      .recipe-details {
+        padding: 5px 20px 13px;
+        border-top: 1px solid var(--line);
+        background: #fafbf8;
+      }
+      .recipe-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 11px;
+        padding: 7px 0;
+        border-bottom: 1px solid #e8ebe2;
+      }
+      .recipe-line:last-child {
+        border-bottom: 0;
+      }
+      .recipe-details p {
+        font-size: 10px;
+        color: var(--muted);
+        padding-top: 6px;
+      }
+      .explanation {
+        font-size: 11px;
+        line-height: 1.7;
+        color: #777d70;
+        margin: 12px 1px 24px;
+      }
+      .explanation summary {
+        cursor: pointer;
+        color: #697360;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .explanation p {
+        max-width: 740px;
+        margin: 4px 0 10px;
+      }
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 16px;
+      }
+      .task-line {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 0;
+        border-top: 1px solid var(--line);
+      }
+      .task-dot {
+        width: 7px;
+        height: 7px;
+        background: #cc8e79;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .task-dot.amber {
+        background: #c0a15d;
+      }
+      .task-line .grow {
+        flex: 1;
+      }
+      .task-line b {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .task-line p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .task-line .btn {
+        font-size: 11px;
+        min-height: 33px;
+        padding: 5px 9px;
+      }
+      .mix-track {
+        display: flex;
+        height: 13px;
+        border-radius: 5px;
+        overflow: hidden;
+        background: #eee;
+        margin: 19px 0 15px;
+        gap: 3px;
+      }
+      .mix-track .lite {
+        background: #627c4c;
+      }
+      .mix-track .pro {
+        background: #a5b890;
+      }
+      .mix-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .mix-labels b {
+        color: #434d3a;
+      }
+      .legend-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        display: inline-block;
+        background: #627c4c;
+        margin-right: 5px;
+      }
+      .legend-dot.pro {
+        background: #a5b890;
+      }
+      .panel-footer {
+        padding: 10px 21px;
+        border-top: 1px solid var(--line);
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .panel-footer .text-btn {
+        min-height: 28px;
+        font-size: 11px;
+      }
+      .page-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 30px;
+        padding-top: 15px;
+        border-top: 1px solid #dfe3d7;
+        color: #81877a;
+        font-size: 10px;
+      }
+      .bottom-nav {
+        display: none;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d6dbce;
+        background: white;
+        border-radius: 8px;
+        padding: 0 11px;
+        max-width: 320px;
+        width: 100%;
+        height: 42px;
+        color: var(--muted);
+      }
+      .search input {
+        border: 0;
+        background: none;
+        width: 100%;
+        height: 38px;
+        font-size: 12px;
+        outline: 0;
+      }
+      .filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filters button {
+        border: 1px solid #dce0d5;
+        background: transparent;
+        border-radius: 7px;
+        padding: 8px 12px;
+        font-size: 12px;
+        min-height: 40px;
+      }
+      .filters button[aria-pressed="true"] {
+        background: #e0e9d7;
+        border-color: #cfdbc3;
+        color: #35512a;
+      }
+      .part-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      .part-table th {
+        font-weight: 550;
+        font-size: 10px;
+        color: var(--muted);
+        padding: 12px 17px;
+        background: #fafbf8;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .part-table td {
+        padding: 15px 17px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .part-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .part-table td b {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .part-table td small {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .part-table .cell-num {
+        font-size: 14px;
+        font-weight: 550;
+      }
+      .part-table td .pill {
+        font-size: 10px;
+      }
+      .part-table .part-first {
+        min-width: 150px;
+      }
+      .part-table .order-date {
+        font-size: 11px;
+      }
+      .part-table .order-date.red {
+        color: var(--red);
+      }
+      .part-table .order-date.amber {
+        color: var(--amber);
+      }
+      .part-table .order-date.green {
+        color: var(--green);
+      }
+      .data-note {
+        padding: 13px 17px;
+        background: #fafbf8;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+        border-radius: 0 0 14px 14px;
+      }
+      .part-cards {
+        display: none;
+      }
+      .empty {
+        padding: 36px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .trend-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .trend-card {
+        padding: 22px;
+      }
+      .trend-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .trend-values {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        margin: 18px 0;
+      }
+      .trend-values strong {
+        font-size: 34px;
+        letter-spacing: -1px;
+        font-weight: 620;
+      }
+      .trend-values span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .bar-chart {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .bar-row {
+        display: grid;
+        grid-template-columns: 95px 1fr 28px;
+        align-items: center;
+        gap: 10px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .bar-track {
+        height: 16px;
+        background: #f3f5ef;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .bar-track i {
+        display: block;
+        height: 100%;
+        background: #78915e;
+        border-radius: 4px;
+      }
+      .bar-row.previous i {
+        background: #d1dcc6;
+      }
+      .bar-row b {
+        font-weight: 600;
+        color: var(--ink);
+        text-align: right;
+      }
+      .action-choices {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 23px;
+      }
+      .action-choice {
+        padding: 18px 15px;
+        background: #fff;
+        border: 1px solid #dfe4d7;
+        border-radius: 12px;
+        text-align: left;
+        min-height: 125px;
+        box-shadow: var(--shadow);
+      }
+      .action-choice > .icon {
+        margin-bottom: 14px;
+        color: #687e57;
+      }
+      .action-choice b {
+        display: block;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .action-choice small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-top: 4px;
+      }
+      .action-choice[aria-pressed="true"] {
+        background: #edf3e7;
+        border-color: #a4bb90;
+        box-shadow: 0 0 0 1px #a4bb9055;
+      }
+      .flow {
+        max-width: 710px;
+        margin: 0 auto;
+      }
+      .flow-head {
+        padding: 21px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .flow-head p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .flow-body {
+        padding: 23px 24px;
+      }
+      .field {
+        display: grid;
+        gap: 7px;
+        margin-bottom: 18px;
+      }
+      .field > label,
+      .field > legend {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .field input,
+      .field select {
+        border: 1px solid #cbd2c3;
+        border-radius: 8px;
+        min-height: 46px;
+        padding: 10px 12px;
+        background: #fff;
+        color: var(--ink);
+        width: 100%;
+      }
+      .field small {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .quantity {
+        display: flex;
+        align-items: center;
+        border: 1px solid #cbd2c3;
+        border-radius: 9px;
+        overflow: hidden;
+        background: #fff;
+      }
+      .quantity button {
+        border: 0;
+        background: #f5f7f0;
+        min-width: 50px;
+        min-height: 50px;
+        font-size: 22px;
+      }
+      .quantity input {
+        width: 100%;
+        border: 0 !important;
+        text-align: center;
+        border-radius: 0;
+        min-width: 0;
+        min-height: 50px;
+        font-size: 23px;
+        font-weight: 550;
+        padding: 4px;
+      }
+      .reasons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 7px;
+        margin: 7px 0 20px;
+      }
+      .reasons button {
+        border: 1px solid #d5dccd;
+        background: white;
+        border-radius: 8px;
+        min-height: 46px;
+        font-size: 12px;
+      }
+      .reasons button[aria-pressed="true"] {
+        background: #e9f1e1;
+        border-color: #8ca974;
+        color: #35552b;
+      }
+      .flow-alert {
+        border-radius: 8px;
+        background: #f5f6f1;
+        padding: 12px 14px;
+        font-size: 11px;
+        color: #66745a;
+        margin-bottom: 18px;
+      }
+      .flow-alert.warning {
+        background: var(--amber-bg);
+        color: #825a10;
+      }
+      .flow-alert.error {
+        background: var(--red-bg);
+        color: var(--red);
+      }
+      .changes {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        overflow: hidden;
+        margin: 18px 0;
+      }
+      .changes h3 {
+        font-size: 11px;
+        background: #f7f9f2;
+        padding: 11px 14px;
+      }
+      .changes .change {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 14px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .flow-footer {
+        border-top: 1px solid var(--line);
+        padding: 16px 24px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        background: #fafbf8;
+        border-radius: 0 0 14px 14px;
+      }
+      .flow-footer small {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .count-progress {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 15px;
+      }
+      .count-track {
+        height: 4px;
+        background: #e9ede2;
+        border-radius: 9px;
+        margin-bottom: 25px;
+      }
+      .count-track i {
+        display: block;
+        height: 100%;
+        background: #8ca575;
+        border-radius: 9px;
+      }
+      .count-title {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .count-title h3 {
+        font-size: 22px;
+        letter-spacing: -0.6px;
+      }
+      .count-title p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .location {
+        background: #f7f9f3;
+        border: 1px solid #e0e6d7;
+        border-radius: 11px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .location .row {
+        margin-bottom: 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .count-total {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 12px 0;
+      }
+      .count-total strong {
+        font-size: 22px;
+        font-weight: 600;
+      }
+      .history-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .history-controls select {
+        border: 1px solid #d7dece;
+        border-radius: 8px;
+        background: #fff;
+        padding: 9px;
+        min-height: 42px;
+        font-size: 12px;
+      }
+      .history-group {
+        padding: 14px 22px 8px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #808774;
+        background: #fafbf8;
+        border-bottom: 1px solid var(--line);
+      }
+      .history-row {
+        padding: 17px 22px;
+        display: flex;
+        gap: 13px;
+        align-items: flex-start;
+        border-bottom: 1px solid var(--line);
+      }
+      .history-row:last-child {
+        border-bottom: 0;
+      }
+      .history-icon {
+        background: #f0f4e9;
+        color: #67804f;
+        border-radius: 9px;
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+      .history-row .body {
+        flex: 1;
+        min-width: 0;
+      }
+      .history-row h3 {
+        font-size: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .history-row p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .history-row .time {
+        font-size: 10px;
+        color: #818877;
+        white-space: nowrap;
+        padding-top: 2px;
+      }
+      .history-row details {
+        margin-top: 5px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .history-row summary {
+        cursor: pointer;
+        min-height: 28px;
+        padding: 4px 0;
+      }
+      .history-row .btn {
+        min-height: 34px;
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 25px;
+        left: calc(50% + 100px);
+        transform: translateX(-50%);
+        background: #2a3728;
+        color: white;
+        box-shadow: 0 4px 20px #0002;
+        border-radius: 10px;
+        padding: 13px 19px;
+        font-size: 12px;
+        z-index: 20;
+        max-width: 90vw;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+      .toast button {
+        background: transparent;
+        color: #fff;
+        border: 0;
+        text-decoration: underline;
+        min-height: 30px;
+      }
+      .modal {
+        border: 1px solid #e1e5d9;
+        border-radius: 16px;
+        padding: 0;
+        width: min(500px, calc(100% - 32px));
+        box-shadow: 0 15px 60px #1a271a30;
+        max-height: 85vh;
+        overflow: auto;
+      }
+      .modal::backdrop {
+        background: #1e2a2055;
+        backdrop-filter: blur(2px);
+      }
+      .modal-inner {
+        padding: 24px;
+      }
+      .modal-inner p {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 9px;
+      }
+      .modal-inner .btn {
+        margin-top: 18px;
+      }
+      .reset-button {
+        float: right;
+      }
+      .trend-full {
+        grid-column: 1/-1;
+      }
+      .flow .btn.full {
+        width: 100%;
+      }
+      .notice.amber {
+        background: #fff9e9;
+        border-color: #eadcb5;
+      }
+      .notice.amber > .icon {
+        background: #f9edc9;
+        color: #91651a;
+      }
+      .notice.amber p {
+        color: #806d41;
+      }
+      .notice.green {
+        background: #f0f7ed;
+        border-color: #d0e0c6;
+      }
+      @media (min-width: 1450px) {
+        .content {
+          padding-top: 40px;
+        }
+        .tank-art {
+          right: 32px;
+        }
+        .product-main {
+          padding-top: 24px;
+          padding-bottom: 23px;
+        }
+      }
+      @media (max-width: 1150px) {
+        .sidebar {
+          width: 190px;
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+        .main-shell {
+          margin-left: 190px;
+        }
+        .content {
+          padding: 26px 24px;
+        }
+        .topbar {
+          padding: 0 24px;
+        }
+        .tank-art {
+          width: 62px;
+          right: 8px;
+          opacity: 0.65;
+        }
+        .product-numbers {
+          gap: 23px;
+        }
+        .part-table th,
+        .part-table td {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .part-table .supplier-name {
+          display: none;
+        }
+        .secondary .product-title h3 {
+          font-size: 12px;
+        }
+        .secondary .product-main {
+          padding: 17px 16px;
+        }
+        .secondary .product-cover {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        .secondary .product-foot {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        .secondary .product-foot span {
+          font-size: 10px;
+        }
+        .secondary .product-title {
+          gap: 3px;
+        }
+        .secondary .product-numbers {
+          gap: 20px;
+        }
+        .topbar-right .date {
+          display: none;
+        }
+      }
+      @media (max-width: 930px) {
+        .sidebar {
+          width: 170px;
+        }
+        .main-shell {
+          margin-left: 170px;
+        }
+        .brand {
+          padding-left: 2px;
+          gap: 7px;
+        }
+        .brand strong {
+          font-size: 12px;
+        }
+        .brand small {
+          font-size: 9px;
+        }
+        .brand-mark {
+          width: 30px;
+          height: 34px;
+        }
+        .content {
+          padding: 24px 20px;
+        }
+        .nav button {
+          padding-left: 10px;
+          font-size: 12px;
+        }
+        .secondary {
+          grid-column: span 3 !important;
+        }
+        .product-grid .secondary:last-child {
+          grid-column: span 6 !important;
+        }
+        .product-grid .secondary:last-child .product-numbers {
+          margin-top: 10px;
+        }
+        .product-grid .secondary:last-child .product-main {
+          padding-bottom: 10px;
+        }
+        .page-heading h1 {
+          font-size: 25px;
+        }
+        .heading-actions .btn:not(.primary) {
+          display: none;
+        }
+        .tank-art {
+          display: none;
+        }
+        .bottom-grid {
+          grid-template-columns: 1fr;
+        }
+        .part-table {
+          display: none;
+        }
+        .part-cards {
+          display: grid;
+        }
+        .part-card {
+          padding: 16px 19px;
+          border-bottom: 1px solid var(--line);
+        }
+        .part-card:last-child {
+          border-bottom: 0;
+        }
+        .part-card h3 {
+          font-size: 13px;
+        }
+        .part-card .part-stocks {
+          display: flex;
+          gap: 23px;
+          margin: 13px 0;
+        }
+        .part-stocks div {
+          font-size: 10px;
+          color: var(--muted);
+        }
+        .part-stocks b {
+          display: block;
+          font-size: 18px;
+          color: var(--ink);
+          font-weight: 550;
+        }
+        .part-reorder {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 11px;
+        }
+        .part-reorder.red {
+          color: var(--red);
+        }
+        .part-reorder.amber {
+          color: var(--amber);
+        }
+        .part-reorder.green {
+          color: var(--green);
+        }
+        .trend-grid {
+          grid-template-columns: 1fr;
+        }
+        .action-choices {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .action-choice {
+          min-height: 100px;
+        }
+        .action-choice > .icon {
+          margin-bottom: 7px;
+        }
+        .summary-item {
+          padding: 0 14px;
+        }
+        .summary-item small {
+          display: block;
+          margin: 4px 0 0;
+        }
+        .notice p {
+          max-width: 350px;
+        }
+        .notice .btn {
+          font-size: 11px;
+          padding: 7px 10px;
+        }
+        .history-row .time {
+          display: none;
+        }
+      }
+      @media (max-width: 680px) {
+        body {
+          font-size: 14px;
+        }
+        .preview {
+          height: 31px;
+          justify-content: flex-start;
+          padding: 0 16px;
+          font-size: 10px;
+        }
+        .preview .preview-detail {
+          display: none;
+        }
+        .preview button {
+          right: 14px;
+          font-size: 10px;
+          min-height: 28px;
+        }
+        .sidebar {
+          display: none;
+        }
+        .main-shell {
+          margin-left: 0;
+        }
+        .topbar {
+          height: 59px;
+          padding: 0 18px;
+          background: #fafbf7;
+        }
+        .breadcrumb {
+          display: none;
+        }
+        .mobile-brand {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          font-size: 13px;
+          font-weight: 650;
+        }
+        .mobile-brand .brand-mark {
+          width: 27px;
+          height: 31px;
+          border-radius: 8px;
+        }
+        .mobile-brand .icon {
+          width: 17px;
+          height: 17px;
+        }
+        .topbar-right {
+          font-size: 10px;
+          gap: 0;
+        }
+        .content {
+          padding: 23px 16px 100px;
+        }
+        .page-heading {
+          margin-bottom: 20px;
+          gap: 8px;
+        }
+        .page-heading h1 {
+          font-size: 25px;
+          letter-spacing: -0.85px;
+        }
+        .page-heading p {
+          font-size: 12px;
+          max-width: 250px;
+          line-height: 1.6;
+        }
+        .heading-actions {
+          display: none;
+        }
+        .eyebrow {
+          font-size: 9px;
+          margin-bottom: 6px;
+        }
+        .notice {
+          padding: 14px 13px;
+          gap: 10px;
+          align-items: flex-start;
+          margin-bottom: 22px;
+          flex-wrap: wrap;
+        }
+        .notice > .icon {
+          width: 15px;
+          height: 15px;
+          padding: 6px;
+          margin-top: 2px;
+        }
+        .notice > div {
+          flex: 1;
+          min-width: 200px;
+        }
+        .notice strong {
+          font-size: 12px;
+        }
+        .notice p {
+          font-size: 11px;
+          line-height: 1.6;
+        }
+        .notice .btn {
+          margin: 0 0 0 37px;
+          min-height: 33px;
+          font-size: 11px;
+        }
+        .summary {
+          margin-bottom: 26px;
+          gap: 0;
+        }
+        .summary-item {
+          padding: 0 11px;
+        }
+        .summary-item .label {
+          font-size: 10px;
+          gap: 4px;
+          line-height: 1.4;
+          min-height: 28px;
+          margin-bottom: 5px;
+        }
+        .summary-item .label .icon {
+          display: none;
+        }
+        .summary-item strong {
+          font-size: 25px;
+        }
+        .summary-item small {
+          font-size: 9px;
+          line-height: 1.5;
+          margin-top: 4px;
+        }
+        .section-heading {
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .section-heading h2 {
+          font-size: 14px;
+        }
+        .segmented button {
+          font-size: 10px;
+          padding: 5px 9px;
+          min-height: 32px;
+        }
+        .product-grid {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 13px;
+        }
+        .product,
+        .product.secondary,
+        .product-grid .secondary:last-child {
+          grid-column: auto !important;
+        }
+        .product-main,
+        .secondary .product-main {
+          padding: 19px 20px 17px;
+        }
+        .product-title h3,
+        .secondary .product-title h3 {
+          font-size: 15px;
+        }
+        .product-title small {
+          font-size: 10px;
+        }
+        .product-title .mini-icon,
+        .secondary .product-title .mini-icon {
+          display: grid;
+          width: 30px;
+          height: 30px;
+        }
+        .product-title,
+        .secondary .product-title {
+          gap: 9px;
+        }
+        .product-numbers,
+        .secondary .product-numbers,
+        .product-grid .secondary:last-child .product-numbers {
+          margin-top: 19px;
+          gap: 37px;
+        }
+        .product-numbers .build-number,
+        .secondary .product-numbers .build-number {
+          font-size: 45px;
+          letter-spacing: -1.6px;
+        }
+        .product-numbers .sale-number,
+        .secondary .product-numbers .sale-number {
+          font-size: 24px;
+        }
+        .product-numbers .metric-label {
+          font-size: 11px;
+        }
+        .product-cover,
+        .secondary .product-cover {
+          padding: 0 20px 15px;
+        }
+        .product-foot,
+        .secondary .product-foot {
+          padding: 10px 20px;
+        }
+        .secondary .product-foot span {
+          font-size: 11px;
+        }
+        .tank-art {
+          display: block;
+          width: 70px;
+          height: 110px;
+          right: 20px;
+          bottom: 4px;
+          opacity: 0.8;
+        }
+        .secondary .tank-art {
+          display: none;
+        }
+        .product-grid .secondary:last-child .product-main {
+          padding-bottom: 17px;
+        }
+        .product.secondary .product-numbers {
+          margin-top: 15px;
+        }
+        .product.secondary .build-number {
+          font-size: 36px;
+        }
+        .product.secondary .sale-number {
+          font-size: 22px;
+        }
+        .product.secondary .product-cover {
+          padding-bottom: 13px;
+        }
+        .product.secondary .product-main {
+          padding-top: 17px;
+        }
+        .bottom-grid {
+          gap: 13px;
+        }
+        .panel-head {
+          padding: 18px 19px 13px;
+        }
+        .panel-body {
+          padding: 0 19px 19px;
+        }
+        .panel-head h2 {
+          font-size: 15px;
+        }
+        .page-footer {
+          line-height: 1.6;
+          flex-direction: column;
+          gap: 4px;
+          margin-top: 23px;
+        }
+        .bottom-nav {
+          position: fixed;
+          z-index: 10;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          border-top: 1px solid #dce2d4;
+          background: #fafcf8f5;
+          backdrop-filter: blur(12px);
+          display: flex;
+          padding: 5px 7px calc(5px + env(safe-area-inset-bottom));
+          box-shadow: 0 -3px 18px #1e301a05;
+        }
+        .bottom-nav button {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          border: 0;
+          border-radius: 9px;
+          background: transparent;
+          font-size: 10px;
+          color: #7a8271;
+          min-height: 54px;
+          padding: 7px 2px 4px;
+        }
+        .bottom-nav button[aria-current="page"] {
+          color: #315b2c;
+          background: #e7efdf;
+        }
+        .bottom-nav .icon {
+          width: 20px;
+          height: 20px;
+        }
+        .toast {
+          bottom: 81px;
+          left: 50%;
+          width: max-content;
+          max-width: calc(100vw - 28px);
+          font-size: 11px;
+          padding: 10px 14px;
+        }
+        .toolbar {
+          gap: 11px;
+        }
+        .search {
+          max-width: none;
+        }
+        .filters button {
+          font-size: 11px;
+          padding: 8px 10px;
+        }
+        .part-card {
+          padding: 17px 18px;
+        }
+        .part-card .part-stocks {
+          gap: 28px;
+        }
+        .trend-card {
+          padding: 20px;
+        }
+        .trend-grid {
+          gap: 13px;
+        }
+        .bar-row {
+          grid-template-columns: 89px 1fr 25px;
+        }
+        .action-choices {
+          gap: 9px;
+          margin-bottom: 20px;
+        }
+        .action-choice {
+          padding: 15px;
+          min-height: 111px;
+        }
+        .action-choice b {
+          font-size: 12px;
+        }
+        .action-choice small {
+          font-size: 10px;
+        }
+        .flow-head {
+          padding: 19px;
+        }
+        .flow-body {
+          padding: 19px;
+        }
+        .flow-footer {
+          padding: 14px 19px;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .flow-footer .btn {
+          min-height: 46px;
+        }
+        .flow-footer small {
+          max-width: 130px;
+          font-size: 10px;
+        }
+        .field-row {
+          gap: 10px;
+        }
+        .field label {
+          font-size: 11px;
+        }
+        .reasons {
+          gap: 5px;
+        }
+        .reasons button {
+          font-size: 11px;
+        }
+        .history-controls {
+          width: 100%;
+        }
+        .history-controls select {
+          flex: 1;
+        }
+        .history-row {
+          padding: 16px;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .history-row .body {
+          min-width: 190px;
+        }
+        .history-row > .btn {
+          margin-left: 44px;
+        }
+        .history-icon {
+          width: 30px;
+          height: 30px;
+        }
+        .history-group {
+          padding-left: 16px;
+        }
+        .count-title h3 {
+          font-size: 21px;
+        }
+      }
+      @media (max-width: 680px) {
+        .search input,
+        .field input,
+        .field select,
+        .history-controls select {
+          font-size: 16px;
+        }
+        .quantity input {
+          font-size: 23px;
+        }
+        .notice .btn,
+        .filters button,
+        .product-foot button,
+        .secondary .product-foot button,
+        .history-row .btn {
+          min-height: 44px;
+        }
+        .product-foot button {
+          min-width: 65px;
+        }
+        .segmented button {
+          min-height: 38px;
+        }
+      }
+      @media (max-width: 360px) {
+        .tank-art {
+          width: 53px;
+          right: 10px;
+          opacity: 0.5;
+        }
+        .product-numbers {
+          gap: 25px;
+        }
+        .summary-item {
+          padding-left: 9px;
+          padding-right: 9px;
+        }
+        .section-heading h2 {
+          font-size: 13px;
+        }
+        .segmented button {
+          padding-left: 7px;
+          padding-right: 7px;
+        }
+        .product-top .pill {
+          font-size: 10px;
+        }
+        .product-title h3 {
+          font-size: 14px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to the board</a>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-drop" viewBox="0 0 24 24">
+          <path d="M12 3S5.5 10 5.5 15a6.5 6.5 0 0 0 13 0C18.5 10 12 3 12 3Z" />
+          <path d="M8.5 15a3.5 3.5 0 0 0 3.5 3.5" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+          <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" />
+        </symbol>
+        <symbol id="i-parts" viewBox="0 0 24 24">
+          <path d="m12 3 9 5-9 5-9-5Z M3 8v10l9 5 9-5V8 M12 13v10 M7 5.8l9 5" />
+        </symbol>
+        <symbol id="i-trends" viewBox="0 0 24 24">
+          <path d="M4 3v17h17 M8 15l4-5 4 2 5-7 M17 5h4v4" />
+        </symbol>
+        <symbol id="i-actions" viewBox="0 0 24 24">
+          <path d="m13 2-9 12h7l-1 8 10-13h-8Z" />
+        </symbol>
+        <symbol id="i-history" viewBox="0 0 24 24">
+          <path d="M3 10a9 9 0 1 1 1 8 M3 4v6h6 M12 7v5l3 2" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M4 12h16m-5-5 5 5-5 5" />
+        </symbol>
+        <symbol id="i-out" viewBox="0 0 24 24">
+          <path
+            d="M12 8V3m-4 4 4-4 4 4 M5 11l-2 4v6h18v-6l-2-4 M3 15h6l1 2h4l1-2h6"
+          />
+        </symbol>
+        <symbol id="i-in" viewBox="0 0 24 24">
+          <path
+            d="M12 3v9m-4-4 4 4 4-4 M5 11l-2 4v6h18v-6l-2-4 M3 15h6l1 2h4l1-2h6"
+          />
+        </symbol>
+        <symbol id="i-count" viewBox="0 0 24 24">
+          <rect x="5" y="4" width="14" height="18" rx="2" />
+          <path d="M9 2h6v4H9z M8 11l2 2 5-5 M8 17h7" />
+        </symbol>
+        <symbol id="i-back" viewBox="0 0 24 24">
+          <path d="m8 4-5 5 5 5 M3 9h11a6 6 0 0 1 0 12h-3" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 5 5" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+          <path d="M12 7v6 M12 17h.01" />
+          <circle cx="12" cy="12" r="10" />
+        </symbol>
+        <symbol id="i-truck" viewBox="0 0 24 24">
+          <path d="M2 5h12v13H2z M14 10h5l3 4v4h-8" />
+          <circle cx="6" cy="19" r="2" />
+          <circle cx="18" cy="19" r="2" />
+        </symbol>
+        <symbol id="i-garage" viewBox="0 0 24 24">
+          <path d="m2 8 10-5 10 5v13H2Z M6 21V10h12v11 M6 14h12 M6 18h12" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+      </defs>
+    </svg>
+    <div class="preview">
+      <span class="dot"></span><b>Design preview</b><span>· Sample data</span
+      ><span class="preview-detail">· Changes stay in this tab</span
+      ><button type="button" id="reset">Reset demo</button>
+    </div>
+    <aside class="sidebar" aria-label="Board navigation">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg class="icon"><use href="#i-drop" /></svg>
+        </div>
+        <div>
+          <strong>Spot Free Rinse</strong><small>Tank Build Board</small>
+        </div>
+      </div>
+      <div class="nav-label">YOUR WORKSHOP</div>
+      <nav class="nav" id="desktop-nav"></nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-note">
+          A clear view of the parts,<br />and what comes next.
+        </div>
+        <div class="person">
+          <span class="avatar">MS</span>
+          <div><strong>Marko</strong><small>Brisbane, Australia</small></div>
+        </div>
+      </div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="breadcrumb">
+          Apps <span>/</span> <b>Tank Build Board</b> <span>/</span>
+          <span id="crumb">Home</span>
+        </div>
+        <div class="mobile-brand">
+          <div class="brand-mark">
+            <svg class="icon"><use href="#i-drop" /></svg>
+          </div>
+          Tank Build Board
+        </div>
+        <div class="topbar-right">
+          <span class="date">Thursday, 22 October 2026</span
+          ><span><span class="sync-dot"></span>Sample sync · 6:05 am</span>
+        </div>
+      </header>
+      <main id="main" class="content" tabindex="-1"></main>
+    </div>
+    <nav class="bottom-nav" id="mobile-nav" aria-label="Board navigation"></nav>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog class="modal" id="modal" aria-labelledby="modal-title">
+      <div class="modal-inner" id="modal-content"></div>
+    </dialog>
+    <script>
+      "use strict";
+      /* Standalone, offline design preview. No App Bridge, fetch, Shopify credentials or writes.
+   Fixtures use the metaobject fields read in ../index.html (parts is [{code,qty}]).
+   prev_sales and listed are the requested product fields, which the current reader omits.
+   Recipes, unprovided stock counts, costs, suppliers and history are illustrative.
+   on_hand is usable stock; on_hold is separate, matching the existing page's availability.
+   Garage/shed splits are temporary UI drafts: they are NOT extra metaobject fields. */
+      const TODAY = new Date("2026-10-22T12:00:00+10:00");
+      const DAYS_PER_WEEK = 7,
+        SALES_DAYS = 30,
+        MAX_COVER_DAYS = 84;
+      const part = (
+        code,
+        name,
+        unit,
+        on_hand,
+        on_water = 0,
+        on_hold = 0,
+        lead_days = 90,
+        unit_cost = 1,
+        supplier = "Extrepure",
+      ) => ({
+        code,
+        name,
+        unit,
+        supplier,
+        lead_days,
+        on_hand,
+        on_water,
+        on_hold,
+        unit_cost,
+        note: "",
+      });
+      const tank_board_part = [
+        part("RESIN", "DI resin", "L", 3095, 0, 0, 90, 6.5),
+        part("TANK-817", "817 tanks · Lite", "each", 260, 0, 0, 90, 32),
+        part("TANK-824", "824 tanks · Pro", "each", 38, 0, 0, 90, 46),
+        part("HANDLE", "Handles", "each", 284, 300, 0, 90, 4.5),
+        part("TDS", "TDS meters", "each", 294, 0, 0, 90, 8),
+        part("HOSE-2M", "2 m hoses", "each", 295, 0, 0, 90, 5.5),
+        part("BAG", "Calico bags", "each", 98, 0, 0, 90, 2.5),
+        part("HEAD-BLACK", "Black heads", "each", 150, 0, 0, 90, 18),
+        part("HEAD-BLUE", "Blue heads · Lite", "each", 250, 0, 0, 90, 17),
+        part("FITTINGS", "Fitting sets", "each", 350, 0, 0, 90, 4),
+        part("BYPASS", "Bypass fittings", "each", 50, 0, 0, 90, 7),
+      ];
+      const recipe = (entries) => entries.map(([code, qty]) => ({ code, qty }));
+      const tank_board_product = [
+        {
+          sku: "SFR-TANK-10L",
+          name: "Lite tank",
+          short_name: "Lite tank",
+          parts: recipe([
+            ["TANK-817", 1],
+            ["RESIN", 10],
+            ["HEAD-BLUE", 1],
+            ["HANDLE", 1],
+            ["TDS", 1],
+            ["HOSE-2M", 1],
+            ["FITTINGS", 1],
+          ]),
+          monthly_sales: 77,
+          prev_sales: 54,
+          listed: 200,
+        },
+        {
+          sku: "SFR-TANK-15L",
+          name: "Pro tank",
+          short_name: "Pro tank",
+          parts: recipe([
+            ["TANK-824", 1],
+            ["RESIN", 15],
+            ["HEAD-BLACK", 1],
+            ["HANDLE", 1],
+            ["TDS", 1],
+            ["HOSE-2M", 1],
+            ["FITTINGS", 1],
+          ]),
+          monthly_sales: 41,
+          prev_sales: 21,
+          listed: 38,
+        },
+        {
+          sku: "SFR-RESIN-10L",
+          name: "10L resin kit",
+          short_name: "10L resin kit",
+          parts: recipe([
+            ["RESIN", 10],
+            ["BAG", 1],
+          ]),
+          monthly_sales: 13,
+          prev_sales: 6,
+          listed: 20,
+        },
+        {
+          sku: "SFR-RESIN-15L",
+          name: "15L resin kit",
+          short_name: "15L resin kit",
+          parts: recipe([
+            ["RESIN", 15],
+            ["BAG", 1],
+          ]),
+          monthly_sales: 4,
+          prev_sales: 2,
+          listed: 10,
+        },
+        {
+          sku: "SFR-BYPASS",
+          name: "Bypass head",
+          short_name: "Bypass head",
+          parts: recipe([
+            ["HEAD-BLACK", 1],
+            ["BYPASS", 1],
+            ["FITTINGS", 1],
+          ]),
+          monthly_sales: 7,
+          prev_sales: 3,
+          listed: null,
+        },
+      ];
+      const tank_board_settings = {
+        sales_window: "23 Sept – 22 Oct 2026",
+        sync: { at: "2026-10-22T06:05:00+10:00", through: "1842" },
+      };
+      // These sample movements are already reflected in the initial counts above.
+      const tank_board_movement = [
+        {
+          handle: "demo-gift",
+          at: "2026-10-22T09:15:00+10:00",
+          kind: "gift",
+          sku: "SFR-TANK-10L",
+          qty: 1,
+          who: "Local detailer",
+          changes: tank_board_product[0].parts.map((x) => ({
+            code: x.code,
+            delta: -x.qty,
+          })),
+          skipped: [],
+          value: 130,
+          recorded_by: "Marko",
+          undoes: "",
+          summary: "1 Lite tank taken out",
+        },
+        {
+          handle: "demo-sync",
+          at: tank_board_settings.sync.at,
+          kind: "order",
+          sku: "",
+          qty: 3,
+          who: "Shopify orders #1840–1842",
+          changes: [
+            { code: "RESIN", delta: -35 },
+            { code: "TANK-817", delta: -2 },
+            { code: "TANK-824", delta: -1 },
+          ],
+          skipped: [],
+          value: 0,
+          recorded_by: "Daily sync",
+          undoes: "",
+          summary: "3 orders taken off stock",
+        },
+        {
+          handle: "demo-count",
+          at: "2026-10-21T16:40:00+10:00",
+          kind: "count",
+          sku: "",
+          qty: 1,
+          who: "Garage + shed",
+          changes: [{ code: "HANDLE", from: 280, to: 284 }],
+          skipped: [],
+          value: 0,
+          recorded_by: "Marko",
+          undoes: "",
+          summary: "Handles counted",
+        },
+      ];
+      const INITIAL = JSON.stringify({
+        parts: tank_board_part,
+        movements: tank_board_movement,
+      });
+      let parts = structuredClone(tank_board_part),
+        movements = structuredClone(tank_board_movement);
+      let page = "home",
+        stockView = "now",
+        partFilter = "all",
+        partSearch = "",
+        historySearch = "",
+        historyKind = "all",
+        action = "count",
+        countIndex = 0,
+        countReview = false,
+        countDraft = {},
+        outSku = tank_board_product[0].sku,
+        outQty = 1,
+        outWhy = "order",
+        outWho = "",
+        receiveCode = "HANDLE",
+        receiveQty = 300,
+        receiveNote = "",
+        toastTimer;
+      const names = {
+        home: "Home",
+        parts: "Parts",
+        trends: "Trends",
+        actions: "Actions",
+        history: "History",
+      };
+      const icons = {
+        home: "home",
+        parts: "parts",
+        trends: "trends",
+        actions: "actions",
+        history: "history",
+      };
+      const whyLabels = {
+        order: "Order",
+        gift: "Gift",
+        sample: "Sample",
+        faulty: "Faulty",
+        receive: "Delivery",
+        count: "Stocktake",
+        putback: "Put back",
+      };
+      const $ = (s) => document.querySelector(s),
+        icon = (name, cls = "") =>
+          `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const fmt = (n) =>
+        Number(n).toLocaleString("en-AU", { maximumFractionDigits: 1 });
+      const byCode = (code) => parts.find((p) => p.code === code);
+      const bySku = (sku) => tank_board_product.find((p) => p.sku === sku);
+      const date = (d) =>
+        new Date(d).toLocaleDateString("en-AU", {
+          day: "numeric",
+          month: "short",
+          timeZone: "Australia/Brisbane",
+        });
+      const time = (d) =>
+        new Date(d).toLocaleTimeString("en-AU", {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: "Australia/Brisbane",
+        });
+      const weeks = (units, rate) =>
+        rate ? ((units / rate) * SALES_DAYS) / DAYS_PER_WEEK : null;
+      const severity = (w) =>
+        w === null
+          ? "amber"
+          : w < 6
+            ? "red"
+            : w < 12 - 0.05
+              ? "amber"
+              : "green";
+      const trend = (p) =>
+        p.prev_sales
+          ? Math.round((p.monthly_sales / p.prev_sales - 1) * 100)
+          : null;
+      function trendText(p) {
+        const n = trend(p);
+        return n === null
+          ? "New sales"
+          : `${n >= 0 ? "↑" : "↓"} ${Math.abs(n)}%`;
+      }
+      function pace(code) {
+        return tank_board_product.reduce(
+          (sum, p) =>
+            sum +
+            p.monthly_sales *
+              p.parts
+                .filter((i) => i.code === code)
+                .reduce((a, i) => a + i.qty, 0),
+          0,
+        );
+      }
+      function partInfo(p) {
+        const rate = pace(p.code),
+          w = weeks(p.on_hand, rate),
+          due = rate
+            ? new Date(
+                TODAY.getTime() +
+                  ((p.on_hand / rate) * SALES_DAYS - p.lead_days) * 86400000,
+              )
+            : null;
+        return {
+          p,
+          rate,
+          w,
+          due,
+          sev:
+            due && due < TODAY
+              ? "red"
+              : due && due.getTime() - TODAY.getTime() < 14 * 86400000
+                ? "amber"
+                : "green",
+        };
+      }
+      /* Daily sync policy: floor of two each where stock permits, then one unit to
+   the eligible product with the lowest units / monthly_sales. A capped product
+   leaves the queue. Stable SKU order breaks ties. Never promise the same part twice.
+   Cap is floored to avoid promising more than 84 days' cover (12 weeks).
+   A zero-sales product receives only the floor and has no inferred sales cover. */
+      function allocate(includeWater = false) {
+        const pool = Object.fromEntries(
+          parts.map((p) => [
+            p.code,
+            p.on_hand + (includeWater ? p.on_water : 0),
+          ]),
+        );
+        const result = tank_board_product.map((p) => ({
+          p,
+          n: 0,
+          cap:
+            p.monthly_sales > 0
+              ? Math.max(
+                  2,
+                  Math.floor((p.monthly_sales * MAX_COVER_DAYS) / SALES_DAYS),
+                )
+              : 2,
+          blocked: null,
+        }));
+        const short = (r) =>
+          r.p.parts.find(
+            (i) => pool[i.code] === undefined || pool[i.code] + 1e-8 < i.qty,
+          );
+        const give = (r) => {
+          r.p.parts.forEach((i) => {
+            pool[i.code] -= i.qty;
+          });
+          r.n++;
+        };
+        for (let floor = 0; floor < 2; floor++)
+          for (const r of result) if (!short(r)) give(r);
+        while (true) {
+          const eligible = result.filter(
+            (r) => r.p.monthly_sales > 0 && r.n < r.cap && !short(r),
+          );
+          if (!eligible.length) break;
+          eligible.sort(
+            (a, b) => a.n / a.p.monthly_sales - b.n / b.p.monthly_sales,
+          );
+          give(eligible[0]);
+        }
+        for (const r of result) {
+          r.blocked = r.n >= r.cap ? null : short(r)?.code;
+          r.w = weeks(r.n, r.p.monthly_sales);
+          r.atCap = r.n >= r.cap;
+          r.sev = r.atCap ? "green" : severity(r.w);
+        }
+        return { result, pool };
+      }
+      function tankArt(pro) {
+        return `<svg class="tank-art" viewBox="0 0 92 140" fill="none" aria-hidden="true"><defs><linearGradient id="tank-${pro ? "p" : "l"}" x1="20" x2="75"><stop stop-color="#e5e8e1"/><stop offset=".4" stop-color="#fafbf8"/><stop offset="1" stop-color="#d7dfd0"/></linearGradient></defs><ellipse cx="46" cy="129" rx="28" ry="4" fill="#e0e5d9"/><path d="M21 52c0-13 50-13 50 0v65c0 16-50 16-50 0Z" fill="url(#tank-${pro ? "p" : "l"})" stroke="#b9c4ad"/><path d="M22 57c13 8 35 8 48 0 M23 114c13 8 33 8 46 0" stroke="#c5cebd"/><rect x="35" y="27" width="22" height="19" rx="5" fill="${pro ? "#384436" : "#537d9c"}"/><path d="M38 29V17h17c8 0 10 12 2 13" stroke="#48583c" stroke-width="5"/><path d="M45 28v-8 M32 36H19v9" stroke="${pro ? "#384436" : "#537d9c"}" stroke-width="7" stroke-linecap="round"/><rect x="33" y="75" width="26" height="24" rx="3" fill="${pro ? "#49623e" : "#6c8860"}"/><path d="M41 83h11 M41 87h8 M41 91h10" stroke="#fff" stroke-opacity=".6" stroke-width="1.5"/><circle cx="60" cy="43" r="5" fill="#edf3e7" stroke="#677e54"/><path d="m60 43 2-2" stroke="#677e54"/></svg>`;
+      }
+      function nav() {
+        const html = Object.entries(names)
+          .map(
+            ([key, name]) =>
+              `<button type="button" data-page="${key}" ${page === key ? 'aria-current="page"' : ""}>${icon(icons[key])}<span>${name}</span>${key === "parts" && page !== key ? `<span class="nav-count">${parts.filter((p) => partInfo(p).sev === "red").length}</span>` : ""}</button>`,
+          )
+          .join("");
+        $("#desktop-nav").innerHTML = html;
+        $("#mobile-nav").innerHTML = html.replace(
+          /<span class="nav-count">.*?<\/span>/g,
+          "",
+        );
+        $("#crumb").textContent = names[page];
+      }
+      function heading(title, subtitle, buttons = "") {
+        return `<div class="page-heading"><div><div class="eyebrow">${page === "home" ? "Thursday, 22 October" : "Your workshop"}</div><h1>${title}</h1><p>${subtitle}</p></div><div class="heading-actions">${buttons}</div></div>`;
+      }
+      function footer() {
+        return `<footer class="page-footer"><span>${icon("check")} Sample daily sync · 22 Oct, 6:05 am · Through order #${esc(tank_board_settings.sync.through)}</span><span>Design preview · No connection to Shopify</span></footer>`;
+      }
+      function productCard(r, index) {
+        const p = r.p,
+          block = r.blocked ? byCode(r.blocked).name : "12-week limit",
+          cover =
+            r.w === null ? "No sales pace" : `${r.w.toFixed(1)} weeks of cover`,
+          tag =
+            r.sev === "red"
+              ? "Running low"
+              : r.atCap
+                ? "Well stocked"
+                : "Keep an eye on it";
+        return `<article class="panel product ${r.sev} ${index > 1 ? "secondary" : ""}"><div class="product-main"><div class="product-top"><div class="product-title"><span class="mini-icon">${icon(index < 2 ? "drop" : index < 4 ? "parts" : "actions")}</span><div><h3>${esc(p.short_name)}</h3>${index < 2 ? `<small>${index === 0 ? "10 litre" : "15 litre"} DI water tank</small>` : ""}</div></div><span class="pill ${r.sev}"><span class="dot"></span>${tag}</span></div><div class="product-numbers"><div><div class="build-number num">${fmt(r.n)}</div><div class="metric-label">can be built</div></div><div class="sale"><div class="sale-number num">${p.listed === null ? "—" : fmt(p.listed)}</div><div class="metric-label">on sale in Shopify</div></div></div>${index < 2 ? tankArt(index === 1) : ""}</div><div class="product-cover"><div class="cover-line"><b>${cover}</b><span>${fmt(p.monthly_sales)} sold / 30 days</span></div><div class="cover-track" role="img" aria-label="${esc(cover)} out of a 12-week target"><i style="width:${Math.min(100, ((r.w || 0) / 12) * 100)}%"></i></div><div class="trend-caption"><b class="${trend(p) >= 0 ? "up" : "down"}">${trendText(p)}</b> vs previous 30 days ${p.listed !== null && p.listed > r.n ? '<span class="pill red">On sale exceeds parts</span>' : ""}</div></div><div class="product-foot"><span>${icon(r.atCap ? "check" : "parts")}${r.atCap ? "At the 12-week limit" : "Held back by " + esc(block)}</span><button type="button" data-recipe="${p.sku}" aria-expanded="false" aria-controls="recipe-${index}">Parts ${icon("arrow")}</button></div><div id="recipe-${index}" class="recipe-details" hidden>${p.parts.map((i) => `<div class="recipe-line"><span>${esc(byCode(i.code).name)} × ${fmt(i.qty)}${byCode(i.code).unit === "L" ? " L" : ""}</span><b>${fmt(byCode(i.code).on_hand)} on hand</b></div>`).join("")}<p>Sample recipe for design review. Build numbers share these parts across all five products.${p.listed === null ? " Shopify sale quantity was not provided for this product." : ""}</p></div></article>`;
+      }
+      function mix() {
+        const l = tank_board_product[0],
+          p = tank_board_product[1],
+          total = l.monthly_sales + p.monthly_sales,
+          percent = Math.round((l.monthly_sales / total) * 100);
+        return `<div class="mix-track" role="img" aria-label="Lite ${percent}%, Pro ${100 - percent}% of tank sales"><div class="lite" style="width:${percent}%"></div><div class="pro" style="width:${100 - percent}%"></div></div><div class="mix-labels"><span><i class="legend-dot"></i>Lite <b>${percent}%</b> · ${l.monthly_sales} sold</span><span><i class="legend-dot pro"></i>Pro <b>${100 - percent}%</b> · ${p.monthly_sales} sold</span></div>`;
+      }
+      function buildWarning(result) {
+        const low = [...result]
+          .filter((r) => r.blocked && r.w !== null)
+          .sort((a, b) => a.w - b.w)[0];
+        if (!low)
+          return '<div class="flow-alert">All products are at the 12-week limit. Check Parts for the next order dates.</div>';
+        const p = byCode(low.blocked),
+          info = partInfo(p),
+          name = low.p.short_name.replace(" tank", "");
+        return `<div class="notice ${low.sev}">${icon("alert")}<div><strong>${esc(name)} ${low.sev === "red" ? "runs out in" : "has"} about ${Math.round(low.w)} weeks${low.sev === "red" ? "" : " of cover"}</strong><p>${esc(p.name)} ${p.unit === "L" ? "is" : "are"} holding it back. Order by ${date(info.due)}${info.due < TODAY ? " (overdue)" : ""} · Allow ${p.lead_days} days to land.</p></div><button class="btn" data-part-focus="${p.code}">Check parts ${icon("arrow")}</button></div>`;
+      }
+      function home() {
+        const a = allocate(stockView === "after"),
+          tankTotal = a.result.slice(0, 2).reduce((s, r) => s + r.n, 0),
+          sales = tank_board_product.reduce((s, p) => s + p.monthly_sales, 0),
+          prev = tank_board_product.reduce((s, p) => s + p.prev_sales, 0),
+          urgent = parts
+            .map(partInfo)
+            .filter((x) => x.sev === "red")
+            .sort((a, b) => a.due - b.due);
+        return (
+          heading(
+            "Here’s what you can build.",
+            "Your parts, shared out to keep up with sales.",
+            `<button class="btn" data-flow="count">${icon("count")}Count stock</button><button class="btn primary" data-flow="out">${icon("out")}Take stock out</button>`,
+          ) +
+          `${buildWarning(a.result)}<div class="summary"><div class="summary-item"><div class="label">${icon("drop")}Tanks you can build</div><strong class="num">${fmt(tankTotal)}</strong><small>Lite + Pro, shared parts</small></div><div class="summary-item"><div class="label">${icon("trends")}Sold in the last 30 days</div><strong class="num">${sales}</strong><small><span class="up">↑ ${Math.round((sales / prev - 1) * 100)}%</span> across all products</small></div><div class="summary-item"><div class="label">${icon("truck")}Handles on the way</div><strong class="num">${fmt(byCode("HANDLE").on_water)}</strong><small>${fmt(byCode("HANDLE").on_hand)} already on hand</small></div></div><div class="section-heading"><h2>Your build board <span class="muted small">· 5 products</span></h2><div class="segmented" role="group" aria-label="Stock to include"><button data-stock="now" aria-pressed="${stockView === "now"}">On hand</button><button data-stock="after" aria-pressed="${stockView === "after"}">After delivery</button></div></div>${stockView === "after" ? '<div class="flow-alert">Preview includes parts on the way. Only stock on hand can be built today. The handle delivery does not change the resin or tank shortages.</div>' : ""}<div class="product-grid">${a.result.map(productCard).join("")}</div><details class="explanation"><summary>${icon("parts")} How these numbers are worked out</summary><p>Two of each product are set aside first, if the parts are there. The remaining parts go one product at a time to whichever is furthest behind its sales pace. When a product runs out of a part, the others keep going, up to 12 weeks of cover each. Shared parts are only counted once.</p><p>Cover uses the last 30 days of sales. Parts on hold are separate from usable stock. Sale quantities are shown alongside the build numbers; this preview never changes Shopify. Recipes and unprovided counts are sample data.</p></details><div class="bottom-grid"><section class="panel"><div class="panel-head"><h2>Next on your list</h2><p>Parts to order before they run out.</p></div><div class="panel-body">${urgent
+            .slice(0, 2)
+            .map(
+              (x) =>
+                `<div class="task-line"><span class="task-dot ${x.sev}"></span><div class="grow"><b>${esc(x.p.name)}</b><p>${x.w.toFixed(1)} weeks left · Order by ${date(x.due)} — overdue</p></div><button class="btn" data-part-focus="${x.p.code}">View ${icon("arrow")}</button></div>`,
+            )
+            .join(
+              "",
+            )}</div></section><section class="panel"><div class="panel-head"><h2>Lite or Pro?</h2><p>Of the ${tank_board_product[0].monthly_sales + tank_board_product[1].monthly_sales} tanks sold in the last 30 days.</p></div><div class="panel-body">${mix()}</div><div class="panel-footer"><span>Pro was 28% in the previous 30 days</span><button class="text-btn" data-page="trends">See trends →</button></div></section></div>`
+        );
+      }
+      function filteredParts() {
+        return parts
+          .map(partInfo)
+          .filter(
+            (x) =>
+              (partFilter !== "order" || x.sev !== "green") &&
+              (partFilter !== "water" || x.p.on_water > 0) &&
+              `${x.p.name} ${x.p.code}`
+                .toLowerCase()
+                .includes(partSearch.toLowerCase()),
+          )
+          .sort(
+            (a, b) =>
+              (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity),
+          );
+      }
+      function reorderText(x) {
+        return x.due
+          ? `${date(x.due)}${x.due < TODAY ? " · Overdue" : ""}`
+          : "No sales pace yet";
+      }
+      function partsResults() {
+        const rows = filteredParts();
+        return rows.length
+          ? `<table class="part-table"><thead><tr><th>Part</th><th>On hand</th><th>On the way</th><th>On hold</th><th>Weeks left</th><th>Order by</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="part-first"><b>${esc(x.p.name)}</b><small>${esc(x.p.code)} <span class="supplier-name">· ${esc(x.p.supplier)}</span></small></td><td><span class="cell-num num">${fmt(x.p.on_hand)}</span> <span class="muted small">${x.p.unit === "L" ? "L" : ""}</span></td><td><span class="num ${x.p.on_water ? "up" : "muted"}">${fmt(x.p.on_water)}</span></td><td><span class="num muted">${fmt(x.p.on_hold)}</span></td><td><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></td><td><div class="order-date ${x.sev}">${reorderText(x)}</div><small>${x.p.lead_days} days to land</small></td></tr>`).join("")}</tbody></table><div class="part-cards">${rows.map((x) => `<article class="part-card"><div class="row between"><div><h3>${esc(x.p.name)}</h3><div class="small muted">${esc(x.p.code)} · ${x.p.lead_days} days to land</div></div><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></div><div class="part-stocks"><div><b class="num">${fmt(x.p.on_hand)}${x.p.unit === "L" ? " L" : ""}</b>On hand</div><div><b class="num ${x.p.on_water ? "up" : ""}">${fmt(x.p.on_water)}</b>On the way</div><div><b class="num">${fmt(x.p.on_hold)}</b>On hold</div></div><div class="part-reorder ${x.sev}"><span>Order by ${reorderText(x)}</span>${x.p.on_water ? `<button class="text-btn" data-receive="${x.p.code}">Receive →</button>` : ""}</div></article>`).join("")}</div><div class="data-note">Weeks left use all products’ sales, before the shared-parts split. On the way is excluded until received. On hold is separate from usable stock. Reorder dates include each supplier’s lead time.</div>`
+          : '<div class="empty">No parts match. Try another name or filter.</div>';
+      }
+      function partsPage() {
+        return (
+          heading(
+            "Parts, before you run short.",
+            "Most urgent first. Extrepure parts take about 90 days to land.",
+            `<button class="btn" data-flow="count">${icon("count")}Count stock</button><button class="btn primary" data-flow="receive">${icon("in")}Receive delivery</button>`,
+          ) +
+          `<div class="toolbar"><label class="search">${icon("search")}<input id="parts-search" type="search" placeholder="Find a part…" aria-label="Find a part" value="${esc(partSearch)}"></label><div class="filters" role="group" aria-label="Filter parts">${[
+            ["all", "All parts"],
+            ["order", "Order soon"],
+            ["water", "On the way"],
+          ]
+            .map(
+              ([k, v]) =>
+                `<button data-part-filter="${k}" aria-pressed="${partFilter === k}">${v}</button>`,
+            )
+            .join(
+              "",
+            )}</div></div><section class="panel" id="parts-results" aria-label="Parts and reorder dates">${partsResults()}</section><p class="explanation">Dates are based on the sample day, 22 Oct 2026. “Overdue” means the order date has passed, even if parts are still on the shelf. Sample recipes and unprovided counts need checking before real use.</p>`
+        );
+      }
+      function trendsPage() {
+        return (
+          heading(
+            "A little more momentum.",
+            "Last 30 days: 23 Sept–22 Oct · Previous: 24 Aug–22 Sept 2026",
+          ) +
+          `<div class="trend-grid"><section class="panel trend-card trend-full"><div class="row between"><div><h2>The tank mix is shifting</h2><p class="small muted" style="margin-top:5px">Pro is growing faster. Keep its 824 tanks in mind when ordering.</p></div><span class="pill green">Pro +7 points</span></div>${mix()}<p class="small muted" style="margin-top:16px">Previous 30 days: Lite 72% (54) · Pro 28% (21). Current: Lite 65% (77) · Pro 35% (41).</p></section>${tank_board_product
+            .map((p) => {
+              const max = Math.max(p.monthly_sales, p.prev_sales, 1);
+              return `<section class="panel trend-card"><div class="trend-card-head"><h2>${esc(p.short_name)}</h2><span class="pill ${trend(p) >= 0 ? "green" : "red"}">${trendText(p)}</span></div><div class="trend-values"><strong class="num">${p.monthly_sales}</strong><span>sold · was ${p.prev_sales}</span></div><div class="bar-chart" role="img" aria-label="${esc(p.name)}: ${p.monthly_sales} sold in the last 30 days, ${p.prev_sales} in the previous 30 days"><div class="bar-row"><span>Last 30 days</span><div class="bar-track"><i style="width:${(p.monthly_sales / max) * 100}%"></i></div><b>${p.monthly_sales}</b></div><div class="bar-row previous"><span>Previous 30 days</span><div class="bar-track"><i style="width:${(p.prev_sales / max) * 100}%"></i></div><b>${p.prev_sales}</b></div></div></section>`;
+            })
+            .join(
+              "",
+            )}</div><p class="explanation">Each chart compares two complete 30-day totals. Cover and the parts split use the latest 30 days, without assuming sales will keep growing.</p>`
+        );
+      }
+      function quantity(id, value, min = 0, step = 1, label = "Quantity") {
+        return `<div class="quantity"><button type="button" data-step="${id}" data-amount="-${step}" aria-label="Reduce ${esc(label.toLowerCase())}">−</button><input type="number" id="${id}" min="${min}" step="${step}" inputmode="${step === 1 ? "numeric" : "decimal"}" value="${value === "" ? "" : esc(value)}" aria-label="${esc(label)}" placeholder="—"><button type="button" data-step="${id}" data-amount="${step}" aria-label="Add to ${esc(label.toLowerCase())}">+</button></div>`;
+      }
+      function flowShell(title, subtitle, body, foot) {
+        return `<section class="panel flow"><div class="flow-head"><h2>${title}</h2><p>${subtitle}</p></div><div class="flow-body">${body}</div>${foot ? `<div class="flow-footer">${foot}</div>` : ""}</section>`;
+      }
+      function countChanges() {
+        return parts.flatMap((p) => {
+          const d = countDraft[p.code];
+          return d &&
+            validQuantity(d.garage, p.unit, true) &&
+            validQuantity(d.shed, p.unit, true)
+            ? [
+                {
+                  code: p.code,
+                  from: p.on_hand,
+                  to: Number(d.garage) + Number(d.shed),
+                },
+              ]
+            : [];
+        });
+      }
+      function countFlow() {
+        const p = parts[countIndex],
+          d = countDraft[p.code] || { garage: "", shed: "" },
+          completed = countChanges().length;
+        if (countReview) {
+          const ch = countChanges();
+          return flowShell(
+            "Check your stocktake",
+            `${completed} of ${parts.length} parts counted. Skipped parts stay as they are.`,
+            `<div class="flow-alert">Garage and shed are added together. A blank box means not counted; enter 0 for an empty location.</div><div class="changes"><h3>On hand · before → after</h3>${ch.map((c) => `<div class="change"><span>${esc(byCode(c.code).name)}</span><b>${fmt(c.from)} → ${fmt(c.to)}</b></div>`).join("") || '<div class="change">No complete counts yet.</div>'}</div>`,
+            `<button class="btn" data-count-back>Keep counting</button><button class="btn primary" data-save-count ${ch.length ? "" : "disabled"}>Save ${ch.length} counts</button>`,
+          );
+        }
+        return flowShell(
+          "Count what’s actually there",
+          "Count both locations, then check the total before saving.",
+          `<div class="count-progress"><span>Part ${countIndex + 1} of ${parts.length}</span><span>${completed} counted</span></div><div class="count-track"><i style="width:${(completed / parts.length) * 100}%"></i></div><div class="count-title"><h3>${esc(p.name)}</h3><p>${esc(p.code)} · ${p.unit === "L" ? "Count in litres" : "Count in individual units"} · ${fmt(p.on_hand)} on hand now</p></div>${["garage", "shed"].map((loc) => `<div class="location"><div class="row">${icon("garage")}${loc === "garage" ? "Garage" : "Shed"}</div>${quantity("count-" + loc, d[loc], 0, p.unit === "L" ? 0.1 : 1, `${loc === "garage" ? "Garage" : "Shed"} count`)}</div>`).join("")}<div class="count-total"><span>Total on hand ${p.unit === "L" ? "(L)" : ""}</span><strong id="count-total">${d.garage !== "" && d.shed !== "" ? fmt(Number(d.garage) + Number(d.shed)) : "—"}</strong></div><div id="count-error" class="small down" role="alert"></div><div class="row between"><button class="text-btn" data-count-prev ${countIndex === 0 ? "disabled" : ""}>← Previous</button><button class="text-btn" data-count-skip>Skip for now →</button></div>`,
+          `<small>Drafts stay in this tab until you save or reset.</small><button class="btn primary" data-count-next>${countIndex === parts.length - 1 ? "Review counts" : "Next part"} ${icon("arrow")}</button><button class="text-btn" data-count-review>Review ${completed} counted</button>`,
+        );
+      }
+      function outPlan() {
+        const p = bySku(outSku),
+          q = Number(outQty),
+          valid = Number.isInteger(q) && q > 0;
+        return {
+          p,
+          q,
+          valid,
+          changes: p.parts.map((i) => ({
+            code: i.code,
+            delta: -i.qty * (valid ? q : 0),
+          })),
+          over: valid
+            ? p.parts.filter((i) => byCode(i.code).on_hand < i.qty * q)
+            : [],
+        };
+      }
+      function outPreview() {
+        const plan = outPlan();
+        return `<div class="changes"><h3>Parts that will come off the shelf</h3>${plan.changes.map((c) => `<div class="change"><span>${esc(byCode(c.code).name)}</span><b class="${byCode(c.code).on_hand + c.delta < 0 ? "down" : ""}">${fmt(byCode(c.code).on_hand)} → ${fmt(byCode(c.code).on_hand + c.delta)}</b></div>`).join("")}</div>${!plan.valid ? '<div class="flow-alert error">Enter a whole number of at least 1.</div>' : plan.over.length ? `<div class="flow-alert error">Not enough ${plan.over.map((i) => esc(byCode(i.code).name)).join(", ")}. Check the count before taking this out.</div>` : ""}`;
+      }
+      function outFlow() {
+        return flowShell(
+          "Take stock out",
+          "Choose a product. All its parts come off together.",
+          `<div class="field"><label for="out-sku">What’s leaving?</label><select id="out-sku">${tank_board_product.map((p) => `<option value="${p.sku}" ${p.sku === outSku ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></div><div class="field"><label for="out-qty">How many?</label>${quantity("out-qty", outQty, 1, 1, "Product quantity")}</div><div class="field"><label>Why?</label><div class="reasons" role="group" aria-label="Reason for stock out">${["order", "gift", "sample", "faulty"].map((k) => `<button type="button" data-why="${k}" aria-pressed="${outWhy === k}">${whyLabels[k]}</button>`).join("")}</div></div><div id="order-note" class="flow-alert warning" ${outWhy !== "order" ? "hidden" : ""}>Shopify orders come off in the daily sync. Only use this for an order that has not already been counted. Check History first.</div><div class="field"><label for="out-who">${outWhy === "order" ? "Order number" : "Who or a short note"} ${outWhy === "order" ? "" : "(optional)"}</label><input id="out-who" value="${esc(outWho)}" placeholder="${outWhy === "order" ? "e.g. #1843" : "e.g. Local detailer"}"></div><div id="out-preview">${outPreview()}</div><div id="out-error" class="small down" role="alert"></div>`,
+          `<small>Preview only. Shopify won’t change.</small><button class="btn primary" id="save-out" data-save-out ${!outPlan().valid || outPlan().over.length ? "disabled" : ""}>${icon("out")}Take ${Number(outQty) || 0} out of stock</button>`,
+        );
+      }
+      function receivePreview() {
+        const p = byCode(receiveCode),
+          q = Number(receiveQty);
+        return `<div class="changes"><h3>Delivery goes onto the shelf</h3><div class="change"><span>On hand</span><b>${fmt(p.on_hand)} → ${fmt(p.on_hand + (Number.isFinite(q) && q > 0 ? q : 0))}</b></div><div class="change"><span>On the way</span><b>${fmt(p.on_water)} → ${fmt(Math.max(0, p.on_water - (Number.isFinite(q) && q > 0 ? q : 0)))}</b></div></div>${q > p.on_water ? '<div class="flow-alert warning">This is more than the amount on the way. Check the delivery quantity before saving.</div>' : ""}`;
+      }
+      function receiveFlow() {
+        const p = byCode(receiveCode);
+        return flowShell(
+          "Receive a delivery",
+          "Add what arrived. The amount on the way comes down too.",
+          `<div class="field"><label for="receive-code">Which part arrived?</label><select id="receive-code">${parts.map((p) => `<option value="${p.code}" ${p.code === receiveCode ? "selected" : ""}>${esc(p.name)}${p.on_water ? " · " + fmt(p.on_water) + " on the way" : ""}</option>`).join("")}</select></div><div class="field"><label for="receive-qty">How many arrived? ${p.unit === "L" ? "(litres)" : ""}</label>${quantity("receive-qty", receiveQty, p.unit === "L" ? 0.1 : 1, p.unit === "L" ? 0.1 : 1, "Delivery quantity")}</div><div class="field"><label for="receive-note">Delivery note (optional)</label><input id="receive-note" value="${esc(receiveNote)}" placeholder="e.g. Handles from the factory"></div><div id="receive-preview">${receivePreview()}</div><div id="receive-error" class="small down" role="alert"></div>`,
+          `<small>Preview only. Shopify won’t change.</small><button class="btn primary" data-save-receive>${icon("in")}Add delivery to stock</button>`,
+        );
+      }
+      function canUndo(m) {
+        return (
+          !m.undoes &&
+          m.changes.length &&
+          !movements.some((x) => x.undoes === m.handle) &&
+          m.recorded_by !== "Daily sync"
+        );
+      }
+      function actionsPage() {
+        return (
+          heading(
+            "A quick job, done.",
+            "Count it, take it out, or put it back. Every change gets a record.",
+          ) +
+          `<div class="action-choices">${[
+            ["count", "count", "Count stock", "Garage + shed"],
+            ["out", "out", "Take stock out", "Order, gift, sample or faulty"],
+            ["receive", "in", "Receive delivery", "Move it onto the shelf"],
+            [
+              "putback",
+              "back",
+              "Put back or undo",
+              "Fix a change, keep a record",
+            ],
+          ]
+            .map(
+              ([key, ico, title, desc]) =>
+                `<button class="action-choice" type="button" data-action="${key}" aria-pressed="${action === key}">${icon(ico)}<b>${title}</b><small>${desc}</small></button>`,
+            )
+            .join("")}</div>${
+            action === "count"
+              ? countFlow()
+              : action === "out"
+                ? outFlow()
+                : action === "receive"
+                  ? receiveFlow()
+                  : flowShell(
+                      "Put back or undo",
+                      "Choose a change to reverse. A new entry keeps the full story.",
+                      `<div class="flow-alert">Undoing a count restores its previous number. Undoing a delivery also puts the quantity back on the way. Review the change before confirming.</div>${
+                        movements.filter(canUndo).length
+                          ? movements
+                              .filter(canUndo)
+                              .map((m) => historyRow(m, true))
+                              .join("")
+                          : '<p class="muted">Nothing to put back yet.</p>'
+                      }`,
+                      "",
+                    )
+          }`
+        );
+      }
+      function movementDetails(m) {
+        return m.changes
+          .map((c) => {
+            const p = byCode(c.code);
+            return `${esc(p?.name || c.code)} ${c.to !== undefined ? `${fmt(c.from)} → ${fmt(c.to)}` : `${c.delta > 0 ? "+" : ""}${fmt(c.delta)}`}${c.water_delta ? ` · on the way ${c.water_delta > 0 ? "+" : ""}${fmt(c.water_delta)}` : ""}`;
+          })
+          .join("<br>");
+      }
+      function historyRow(m, short = false) {
+        const undone = movements.some((x) => x.undoes === m.handle);
+        return `<article class="history-row"><div class="history-icon">${icon(m.kind === "receive" ? "in" : m.kind === "count" ? "count" : m.kind === "putback" ? "back" : "out")}</div><div class="body"><h3>${esc(m.summary)} <span class="pill ${m.kind === "faulty" ? "red" : m.kind === "putback" ? "green" : ""}">${undone ? "Undone" : whyLabels[m.kind] || m.kind}</span></h3><p>${date(m.at)}, ${time(m.at)} · ${esc(m.who || m.recorded_by)}${m.recorded_by === "Daily sync" ? " · Daily sync" : ""}</p>${!short ? `<details><summary>${m.changes.length} part${m.changes.length === 1 ? "" : "s"} changed · View details</summary><div>${movementDetails(m)}</div></details>` : ""}</div>${canUndo(m) ? `<button class="btn" data-undo="${esc(m.handle)}">${m.changes.some((c) => c.delta < 0) ? "Put back" : "Undo"}</button>` : ""}</article>`;
+      }
+      function historyResults() {
+        const rows = movements.filter(
+          (m) =>
+            (historyKind === "all" || m.kind === historyKind) &&
+            `${m.summary} ${m.who} ${movementDetails(m)}`
+              .toLowerCase()
+              .includes(historySearch.toLowerCase()),
+        );
+        return rows.length
+          ? `<div class="history-group">${rows.length} change${rows.length === 1 ? "" : "s"} · Latest first</div>${rows.map((m) => historyRow(m)).join("")}`
+          : '<div class="empty">No changes match this search.</div>';
+      }
+      function historyPage() {
+        return (
+          heading(
+            "The full story, on record.",
+            "Stock counts, deliveries and stock out — with a way back.",
+          ) +
+          `<div class="toolbar"><label class="search">${icon("search")}<input type="search" id="history-search" aria-label="Search history" placeholder="Find an order, part or change…" value="${esc(historySearch)}"></label><div class="history-controls"><select id="history-kind" aria-label="Filter history by type"><option value="all">All changes</option>${Object.entries(
+            whyLabels,
+          )
+            .map(
+              ([k, v]) =>
+                `<option value="${k}" ${historyKind === k ? "selected" : ""}>${v}</option>`,
+            )
+            .join(
+              "",
+            )}</select><span class="small muted">Sample history</span></div></div><section class="panel" id="history-results" aria-label="Stock change history">${historyResults()}</section><p class="explanation">Daily sync entries are read-only here. This helps avoid putting fulfilled orders back into stock by mistake. Demo changes appear here as you try the Actions screen.</p>`
+        );
+      }
+      function render() {
+        nav();
+        $("#main").innerHTML =
+          {
+            home,
+            parts: partsPage,
+            trends: trendsPage,
+            actions: actionsPage,
+            history: historyPage,
+          }[page]() + footer();
+      }
+      function go(next) {
+        page = next;
+        render();
+        window.scrollTo({ top: 0, behavior: "instant" });
+        $("#main").focus({ preventScroll: true });
+      }
+      function renderFlow() {
+        render();
+        const flow = $(".flow");
+        if (flow) {
+          flow.scrollIntoView({ block: "start", behavior: "instant" });
+          const title = flow.querySelector(".count-title h3, h2");
+          if (title) {
+            title.tabIndex = -1;
+            title.focus({ preventScroll: true });
+          }
+        }
+      }
+      function toast(message) {
+        clearTimeout(toastTimer);
+        $("#toast").innerHTML =
+          `<div class="toast">${icon("check")}<span>${esc(message)}</span><button type="button" data-dismiss-toast aria-label="Dismiss notification">Close</button></div>`;
+        toastTimer = setTimeout(() => ($("#toast").innerHTML = ""), 6000);
+      }
+      let movementSequence = 0;
+      function addMovement(kind, summary, changes, extra = {}) {
+        const m = {
+          handle: "demo-" + Date.now() + "-" + ++movementSequence,
+          at: new Date().toISOString(),
+          kind,
+          summary,
+          changes,
+          sku: "",
+          qty: 0,
+          who: "",
+          skipped: [],
+          value: 0,
+          recorded_by: "Marko",
+          undoes: "",
+          ...extra,
+        };
+        movements.unshift(m);
+        return m;
+      }
+      function applyChanges(changes) {
+        for (const c of changes) {
+          const p = byCode(c.code);
+          if (c.to !== undefined) p.on_hand = c.to;
+          else p.on_hand += c.delta;
+          if (c.water_delta) p.on_water += c.water_delta;
+        }
+      }
+      function validQuantity(value, unit, zero = false) {
+        return (
+          String(value).trim() !== "" &&
+          Number.isFinite(Number(value)) &&
+          Number(value) >= (zero ? 0 : unit === "L" ? 0.1 : 1) &&
+          (unit === "L" || Number.isInteger(Number(value)))
+        );
+      }
+      function checkCount() {
+        const p = parts[countIndex],
+          d = countDraft[p.code] || { garage: "", shed: "" };
+        if (
+          !validQuantity(d.garage, p.unit, true) ||
+          !validQuantity(d.shed, p.unit, true)
+        ) {
+          $("#count-error").textContent =
+            "Count both locations. Enter 0 if a location is empty.";
+          return false;
+        }
+        return true;
+      }
+      function openUndo(handle) {
+        const m = movements.find((m) => m.handle === handle);
+        if (!m || !canUndo(m)) return;
+        const changes = m.changes.map((c) => {
+          const p = byCode(c.code);
+          return c.to !== undefined
+            ? { code: c.code, from: p.on_hand, to: c.from }
+            : {
+                code: c.code,
+                delta: -c.delta,
+                ...(c.water_delta ? { water_delta: -c.water_delta } : {}),
+              };
+        });
+        const invalid = changes.some((c) => {
+            const p = byCode(c.code);
+            return (
+              (c.to ?? p.on_hand + c.delta) < 0 ||
+              p.on_water + (c.water_delta || 0) < 0
+            );
+          }),
+          stale =
+            m.kind === "count" &&
+            m.changes.some((c) => byCode(c.code).on_hand !== c.to);
+        $("#modal-content").innerHTML =
+          `<h2 id="modal-title">${m.kind === "count" ? "Undo this stocktake?" : "Reverse this change?"}</h2><p>${esc(m.summary)}. This adds a new history entry.</p>${stale ? '<div class="flow-alert warning" style="margin-top:14px">Stock has changed since this count. Undo would restore the earlier count; check these numbers carefully.</div>' : ""}<div class="changes"><h3>On hand · now → after undo</h3>${changes.map((c) => `<div class="change"><span>${esc(byCode(c.code).name)}</span><b>${fmt(byCode(c.code).on_hand)} → ${fmt(c.to ?? byCode(c.code).on_hand + c.delta)}</b></div>${c.water_delta ? `<div class="change"><span>On the way</span><b>${fmt(byCode(c.code).on_water)} → ${fmt(byCode(c.code).on_water + c.water_delta)}</b></div>` : ""}`).join("")}</div>${invalid ? '<div class="flow-alert error">Stock has changed since this entry. This undo would take a count below zero. Count the part again instead.</div>' : ""}<div class="row between"><button class="btn" data-close-modal>Cancel</button><button class="btn primary" data-confirm-undo="${esc(handle)}" ${invalid ? "disabled" : ""}>Confirm undo</button></div>`;
+        $("#modal").showModal();
+      }
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b || b.disabled) return;
+        if (b.dataset.page) {
+          go(b.dataset.page);
+          return;
+        }
+        if (b.dataset.flow) {
+          action = b.dataset.flow;
+          go("actions");
+          return;
+        }
+        if (b.dataset.partFocus) {
+          partSearch = byCode(b.dataset.partFocus).name;
+          partFilter = "all";
+          go("parts");
+          return;
+        }
+        if (b.dataset.stock) {
+          stockView = b.dataset.stock;
+          render();
+          return;
+        }
+        if (b.dataset.recipe) {
+          const box = document.getElementById(b.getAttribute("aria-controls")),
+            open = b.getAttribute("aria-expanded") === "true";
+          box.hidden = open;
+          b.setAttribute("aria-expanded", String(!open));
+          return;
+        }
+        if (b.dataset.partFilter) {
+          partFilter = b.dataset.partFilter;
+          render();
+          return;
+        }
+        if (b.dataset.receive) {
+          receiveCode = b.dataset.receive;
+          receiveQty = byCode(receiveCode).on_water || 1;
+          action = "receive";
+          go("actions");
+          return;
+        }
+        if (b.dataset.action) {
+          action = b.dataset.action;
+          renderFlow();
+          return;
+        }
+        if (b.dataset.step) {
+          const input = document.getElementById(b.dataset.step),
+            step = Number(b.dataset.amount),
+            val = Math.max(Number(input.min), Number(input.value || 0) + step);
+          input.value = String(Math.round(val * 10) / 10);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
+        if (b.hasAttribute("data-count-next")) {
+          if (!checkCount()) return;
+          if (countIndex === parts.length - 1) countReview = true;
+          else countIndex++;
+          renderFlow();
+          return;
+        }
+        if (b.hasAttribute("data-count-skip")) {
+          if (countIndex === parts.length - 1) countReview = true;
+          else countIndex++;
+          renderFlow();
+          return;
+        }
+        if (b.hasAttribute("data-count-prev")) {
+          countIndex = Math.max(0, countIndex - 1);
+          renderFlow();
+          return;
+        }
+        if (b.hasAttribute("data-count-review")) {
+          countReview = true;
+          renderFlow();
+          return;
+        }
+        if (b.hasAttribute("data-count-back")) {
+          countReview = false;
+          renderFlow();
+          return;
+        }
+        if (b.hasAttribute("data-save-count")) {
+          const changes = countChanges();
+          if (!changes.length) return;
+          applyChanges(changes);
+          addMovement(
+            "count",
+            `${changes.length} part${changes.length === 1 ? "" : "s"} counted`,
+            changes,
+            { qty: changes.length, who: "Garage + shed" },
+          );
+          countDraft = {};
+          countIndex = 0;
+          countReview = false;
+          render();
+          toast("Counts saved in this demo. Shopify is unchanged.");
+          return;
+        }
+        if (b.dataset.why) {
+          outWhy = b.dataset.why;
+          render();
+          return;
+        }
+        if (b.hasAttribute("data-save-out")) {
+          const plan = outPlan();
+          if (!plan.valid || plan.over.length) return;
+          const ref = outWho.trim().toLowerCase();
+          if (outWhy === "order" && !ref) {
+            $("#out-error").textContent =
+              "Add the order number so you can find it later.";
+            return;
+          }
+          if (
+            outWhy === "order" &&
+            movements.some(
+              (m) => m.kind === "order" && m.who.toLowerCase() === ref,
+            )
+          ) {
+            $("#out-error").textContent =
+              "That order is already in History. Check it before taking stock out again.";
+            return;
+          }
+          applyChanges(plan.changes);
+          addMovement(
+            outWhy,
+            `${plan.q} ${plan.p.short_name}${plan.q > 1 ? "s" : ""} taken out`,
+            plan.changes,
+            {
+              sku: outSku,
+              qty: plan.q,
+              who: outWho.trim(),
+              value: plan.changes.reduce(
+                (s, c) => s - c.delta * byCode(c.code).unit_cost,
+                0,
+              ),
+            },
+          );
+          outQty = 1;
+          outWho = "";
+          render();
+          toast(
+            "Stock taken out in this demo. You can put it back in History.",
+          );
+          return;
+        }
+        if (b.hasAttribute("data-save-receive")) {
+          const p = byCode(receiveCode),
+            q = Number(receiveQty);
+          if (!validQuantity(receiveQty, p.unit)) {
+            $("#receive-error").textContent =
+              p.unit === "L"
+                ? "Enter a delivery quantity of at least 0.1 L."
+                : "Enter a whole number of at least 1.";
+            return;
+          }
+          const changes = [
+            { code: p.code, delta: q, water_delta: -Math.min(p.on_water, q) },
+          ];
+          applyChanges(changes);
+          addMovement(
+            "receive",
+            `${fmt(q)} ${p.name.toLowerCase()} received`,
+            changes,
+            { qty: q, who: receiveNote.trim() || "Delivery received" },
+          );
+          receiveNote = "";
+          receiveQty = 1;
+          render();
+          toast("Delivery added in this demo. The build board has updated.");
+          return;
+        }
+        if (b.dataset.undo) {
+          openUndo(b.dataset.undo);
+          return;
+        }
+        if (b.dataset.confirmUndo) {
+          const m = movements.find((m) => m.handle === b.dataset.confirmUndo);
+          if (!m || !canUndo(m)) return;
+          const changes = m.changes.map((c) =>
+            c.to !== undefined
+              ? { code: c.code, from: byCode(c.code).on_hand, to: c.from }
+              : {
+                  code: c.code,
+                  delta: -c.delta,
+                  ...(c.water_delta ? { water_delta: -c.water_delta } : {}),
+                },
+          );
+          if (
+            changes.some(
+              (c) =>
+                (c.to ?? byCode(c.code).on_hand + c.delta) < 0 ||
+                byCode(c.code).on_water + (c.water_delta || 0) < 0,
+            )
+          )
+            return;
+          applyChanges(changes);
+          addMovement("putback", "Undid: " + m.summary, changes, {
+            undoes: m.handle,
+            sku: m.sku,
+            qty: m.qty,
+            who: "Reversed by Marko",
+          });
+          $("#modal").close();
+          render();
+          toast("Change undone in this demo. History keeps both entries.");
+          return;
+        }
+        if (b.hasAttribute("data-close-modal")) {
+          $("#modal").close();
+          return;
+        }
+        if (b.hasAttribute("data-dismiss-toast")) {
+          $("#toast").innerHTML = "";
+          return;
+        }
+        if (b.id === "reset") {
+          $("#modal-content").innerHTML =
+            '<h2 id="modal-title">Reset the demo?</h2><p>This clears your demo changes and stocktake drafts, and restores the sample numbers.</p><div class="row between"><button class="btn" data-close-modal>Keep changes</button><button class="btn primary" data-confirm-reset>Reset demo</button></div>';
+          $("#modal").showModal();
+          return;
+        }
+        if (b.hasAttribute("data-confirm-reset")) {
+          const initial = JSON.parse(INITIAL);
+          parts = initial.parts;
+          movements = initial.movements;
+          countDraft = {};
+          countIndex = 0;
+          countReview = false;
+          outQty = 1;
+          outWho = "";
+          outWhy = "order";
+          receiveCode = "HANDLE";
+          receiveQty = 300;
+          receiveNote = "";
+          stockView = "now";
+          partSearch = "";
+          historySearch = "";
+          partFilter = "all";
+          historyKind = "all";
+          $("#modal").close();
+          render();
+          toast("Back to the original sample data.");
+        }
+      });
+      document.addEventListener("input", (e) => {
+        const el = e.target;
+        if (el.id === "parts-search") {
+          partSearch = el.value;
+          $("#parts-results").innerHTML = partsResults();
+        }
+        if (el.id === "history-search") {
+          historySearch = el.value;
+          $("#history-results").innerHTML = historyResults();
+        }
+        if (el.id === "count-garage" || el.id === "count-shed") {
+          const p = parts[countIndex],
+            loc = el.id.slice(6);
+          countDraft[p.code] ??= { garage: "", shed: "" };
+          countDraft[p.code][loc] = el.value;
+          const d = countDraft[p.code];
+          $("#count-total").textContent =
+            d.garage !== "" && d.shed !== ""
+              ? fmt(Number(d.garage) + Number(d.shed))
+              : "—";
+          $("#count-error").textContent = "";
+        }
+        if (el.id === "out-qty") {
+          outQty = el.value;
+          $("#out-preview").innerHTML = outPreview();
+          const plan = outPlan();
+          $("#save-out").disabled = !plan.valid || plan.over.length > 0;
+          $("#save-out").innerHTML =
+            `${icon("out")}Take ${plan.valid ? plan.q : 0} out of stock`;
+        }
+        if (el.id === "out-who") outWho = el.value;
+        if (el.id === "receive-qty") {
+          receiveQty = el.value;
+          $("#receive-preview").innerHTML = receivePreview();
+        }
+        if (el.id === "receive-note") receiveNote = el.value;
+      });
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "out-sku") {
+          outSku = e.target.value;
+          render();
+        }
+        if (e.target.id === "receive-code") {
+          receiveCode = e.target.value;
+          receiveQty = byCode(receiveCode).on_water || 1;
+          render();
+        }
+        if (e.target.id === "history-kind") {
+          historyKind = e.target.value;
+          $("#history-results").innerHTML = historyResults();
+        }
+      });
+      $("#modal").addEventListener("click", (e) => {
+        if (e.target === $("#modal")) $("#modal").close();
+      });
+      render();
+    </script>
+  </body>
+</html>
