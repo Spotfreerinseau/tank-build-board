@@ -221,46 +221,18 @@ function trendText(p) {
     : `${n >= 0 ? "↑" : "↓"} ${Math.abs(n)}%`;
 }
 function pace(code) {
-  return tank_board_product.reduce(
-    (sum, p) =>
-      sum +
-      p.monthly_sales *
-        p.parts.filter((i) => i.code === code).reduce((a, i) => a + i.qty, 0),
-    0,
-  );
+  return TankBoard.pace(code, tank_board_product);
 }
 function partInfo(p) {
-  const rate = pace(p.code),
-    reserved = board.reservations()[p.code] || 0,
-    usable = p.on_hand === null ? null : Math.max(0, p.on_hand - reserved),
-    w = weeks(usable, rate),
-    totalWeeks = weeks(usable === null ? null : usable + p.on_water, rate),
-    due =
-      totalWeeks !== null && p.lead_days !== null
-        ? new Date(now().getTime() + (totalWeeks * 7 - p.lead_days) * 86400000)
-        : null,
-    gap =
-      p.on_water > 0 &&
-      w !== null &&
-      p.lead_days !== null &&
-      w * 7 < p.lead_days;
-  return {
+  return TankBoard.partInfo(
     p,
-    rate,
-    reserved,
-    w,
-    due,
-    gap,
-    sev: gap
-      ? "red"
-      : !due
-        ? "amber"
-        : due < now()
-          ? "red"
-          : due - now() < 14 * 86400000
-            ? "amber"
-            : "green",
-  };
+    pace(p.code),
+    board.reservations()[p.code] || 0,
+    now(),
+  );
+}
+function arrivalText(info) {
+  return info.arrival ? "lands ~" + date(info.arrival) : "Arrival date not set";
 }
 function allocate(includeWater = false) {
   return TankBoard.allocate(
@@ -324,7 +296,7 @@ function productCard(r, index) {
             ? "Well stocked"
             : "Keep an eye on it",
     water = r.blocked && byCode(r.blocked)?.on_water > 0;
-  return `<article class="panel product ${bundle ? "" : r.sev} ${!tank ? "secondary" : ""}"><div class="product-main"><div class="product-top"><div class="product-title"><span class="mini-icon">${icon(tank ? "drop" : "parts")}</span><div><h3>${esc(p.short_name)}</h3>${tank ? `<small>${pro ? "15" : "10"} litre DI water tank</small>` : ""}</div></div><span class="pill ${bundle ? "" : r.sev}"><span class="dot"></span>${tag}</span></div><div class="product-numbers">${bundle ? '<div class="small muted">Stock comes from the products inside it in Shopify</div>' : `<div><div class="build-number num">${r.unknown ? "—" : fmt(r.n)}</div><div class="metric-label">can be built</div></div>`}<div class="sale"><div class="sale-number num">${fmt(p.listed)}</div><div class="metric-label">last listed in Shopify</div></div></div>${tank ? tankArt(pro) : ""}</div><div class="product-cover">${!bundle && (!full || r.w !== null) ? `<div class="cover-line"><b>${cover}</b><span>${fmt(p.monthly_sales)} sold / 30 days</span></div>` : ""}${!bundle && !full ? `<div class="cover-track" role="img" aria-label="${esc(cover)} out of a 12-week target"><i style="width:${Math.min(100, ((r.w || 0) / 12) * 100)}%"></i></div>` : ""}<div class="trend-caption"><b class="${trend(p) !== null && trend(p) < 0 ? "down" : "up"}">${trendText(p)}</b> · Previous 30 days: ${fmt(p.prev_sales)} ${r.mode === "shared" && !r.unknown && p.listed !== null && p.listed > r.n ? '<span class="pill red">Listed exceeds parts</span>' : ""}</div></div><div class="product-foot"><span>${bundle ? "" : icon(r.atCap ? "check" : "parts")}${bundle ? "" : full ? (r.blocked ? "Held back by " + esc(block) : "Everything you can build") : r.unknown ? "A recipe needs checking" : r.atCap ? "At the 12-week limit" : "Held back by " + esc(block)}${water && stockView === "now" && r.w !== null && r.w * 7 < (byCode(r.blocked).lead_days ?? 0) ? " · Runs out before the delivery lands" : ""}</span><button type="button" data-recipe="${esc(p.sku)}" aria-expanded="false" aria-controls="recipe-${index}">Parts ${icon("arrow")}</button></div><div id="recipe-${index}" class="recipe-details" hidden>${p.parts.map((i) => `<div class="recipe-line"><span>${esc(byCode(i.code)?.name || i.code)} × ${fmt(i.qty)}</span><b>${fmt(byCode(i.code)?.on_hand)} on hand</b></div>`).join("") || (bundle ? "<p>No recipe recorded in Shopify.</p>" : "<p>Recipe missing or invalid. Check this product in Shopify.</p>")}<p>${bundle ? "Stock comes from the products inside it in Shopify." : full ? "Recipe from Shopify. These units use the parts left after the shared products." : "Recipe from Shopify. Shared parts are counted once across the board."}${!bundle && r.uncounted.length ? " Uncounted parts are treated as unlimited for this estimate, matching the daily sync: " + r.uncounted.map((code) => esc(byCode(code).name)).join(", ") + ". Count them before taking stock out." : ""}${p.listed === null ? " The daily sync has not supplied a listed quantity." : ""}</p></div></article>`;
+  return `<article class="panel product ${bundle ? "" : r.sev} ${!tank ? "secondary" : ""}"><div class="product-main"><div class="product-top"><div class="product-title"><span class="mini-icon">${icon(tank ? "drop" : "parts")}</span><div><h3>${esc(p.short_name)}</h3>${tank ? `<small>${pro ? "15" : "10"} litre DI water tank</small>` : ""}</div></div><span class="pill ${bundle ? "" : r.sev}"><span class="dot"></span>${tag}</span></div><div class="product-numbers">${bundle ? '<div class="small muted">Stock comes from the products inside it in Shopify</div>' : `<div><div class="build-number num">${r.unknown ? "—" : fmt(r.n)}</div><div class="metric-label">can be built</div></div>`}<div class="sale"><div class="sale-number num">${fmt(p.listed)}</div><div class="metric-label">last listed in Shopify</div></div></div>${tank ? tankArt(pro) : ""}</div><div class="product-cover">${!bundle && (!full || r.w !== null) ? `<div class="cover-line"><b>${cover}</b><span>${fmt(p.monthly_sales)} sold / 30 days</span></div>` : ""}${!bundle && !full ? `<div class="cover-track" role="img" aria-label="${esc(cover)} out of a 12-week target"><i style="width:${Math.min(100, ((r.w || 0) / 12) * 100)}%"></i></div>` : ""}<div class="trend-caption"><b class="${trend(p) !== null && trend(p) < 0 ? "down" : "up"}">${trendText(p)}</b> · Previous 30 days: ${fmt(p.prev_sales)} ${r.mode === "shared" && !r.unknown && p.listed !== null && p.listed > r.n ? '<span class="pill red">Listed exceeds parts</span>' : ""}</div></div><div class="product-foot"><span>${bundle ? "" : icon(r.atCap ? "check" : "parts")}${bundle ? "" : full ? (r.blocked ? "Held back by " + esc(block) : "Everything you can build") : r.unknown ? "A recipe needs checking" : r.atCap ? "At the 12-week limit" : "Held back by " + esc(block)}${water && stockView === "now" && r.w !== null && partInfo(byCode(r.blocked)).gap ? " · Runs out before the delivery lands" : ""}</span><button type="button" data-recipe="${esc(p.sku)}" aria-expanded="false" aria-controls="recipe-${index}">Parts ${icon("arrow")}</button></div><div id="recipe-${index}" class="recipe-details" hidden>${p.parts.map((i) => `<div class="recipe-line"><span>${esc(byCode(i.code)?.name || i.code)} × ${fmt(i.qty)}</span><b>${fmt(byCode(i.code)?.on_hand)} on hand</b></div>`).join("") || (bundle ? "<p>No recipe recorded in Shopify.</p>" : "<p>Recipe missing or invalid. Check this product in Shopify.</p>")}<p>${bundle ? "Stock comes from the products inside it in Shopify." : full ? "Recipe from Shopify. These units use the parts left after the shared products." : "Recipe from Shopify. Shared parts are counted once across the board."}${!bundle && r.uncounted.length ? " Uncounted parts are treated as unlimited for this estimate, matching the daily sync: " + r.uncounted.map((code) => esc(byCode(code).name)).join(", ") + ". Count them before taking stock out." : ""}${p.listed === null ? " The daily sync has not supplied a listed quantity." : ""}</p></div></article>`;
 }
 function tankMix(previous = false) {
   const lite = bySku("SFR-TANK-10L"),
@@ -346,15 +318,25 @@ function mix() {
   if (!m) return '<p class="muted">No tank sales pace available yet.</p>';
   return `<div class="mix-track" role="img" aria-label="Lite ${m.percent}%, Pro ${100 - m.percent}% of tank sales"><div class="lite" style="width:${m.percent}%"></div><div class="pro" style="width:${100 - m.percent}%"></div></div><div class="mix-labels"><span><i class="legend-dot"></i>Lite <b>${m.percent}%</b> · ${m.lite} sold</span><span><i class="legend-dot pro"></i>Pro <b>${100 - m.percent}%</b> · ${m.pro} sold</span></div>`;
 }
-function buildWarning(result) {
-  const low = [...result]
-    .filter((r) => r.blocked && r.w !== null)
-    .sort((a, b) => a.w - b.w)[0];
-  if (!low)
-    return '<div class="flow-alert">Check Parts for counts, deliveries and the next order dates.</div>';
-  const p = byCode(low.blocked),
-    info = partInfo(p);
-  return `<div class="notice ${low.sev}">${icon("alert")}<div><strong>${esc(low.p.short_name)} has about ${low.w.toFixed(1)} weeks of cover</strong><p>${esc(p.name)} is holding it back. ${p.on_water > 0 ? (low.w * 7 < (p.lead_days ?? 0) ? "It will run out before the delivery lands. Stock is already on the way; check the delivery date." : "Stock is already on the way. Check the delivery date.") : reorderText(info)}${p.lead_days !== null ? " · Allow " + p.lead_days + " days to land." : ""}</p></div><button class="btn" data-part-focus="${esc(p.code)}">Check parts ${icon("arrow")}</button></div>`;
+function shortStatus(info) {
+  if (info.gap) {
+    const unit = litres(info.p.unit)
+      ? "litres"
+      : info.p.unit === "each"
+        ? "units"
+        : info.p.unit || "units";
+    return `${fmt(info.p.on_water)} on the way, ${arrivalText(info)}. Runs out about ${info.gapWeeks.toFixed(1)} weeks before it lands, about ${fmt(info.shortfall)} ${unit} short`;
+  }
+  return info.overdue ? "Overdue: order now" : "Order by " + date(info.due);
+}
+function runningShortPanel() {
+  const rows = TankBoard.runningShort(
+    parts,
+    tank_board_product,
+    board.reservations(),
+    now(),
+  );
+  return `<section id="running-short" class="panel running-short" aria-labelledby="running-short-title"><div class="panel-head"><h2 id="running-short-title">Running short</h2></div>${rows.length ? rows.map((info) => `<button type="button" class="shortage-row ${info.gap || info.overdue ? "red" : "amber"}" data-part-focus="${esc(info.p.code)}" aria-label="View ${esc(info.p.name)} in Parts"><span class="shortage-part"><strong>${esc(info.p.name)}</strong><small class="muted">${esc(info.p.supplier)}</small><span class="small muted">Holds back: ${info.products.map((p) => esc(p.short_name || p.name || p.sku)).join(", ")}</span></span><span class="shortage-cover"><strong class="num">${info.w.toFixed(1)} weeks</strong><small class="muted">runs out ~${date(info.runOut)}</small></span><span class="shortage-status">${esc(shortStatus(info))}</span>${icon("arrow")}</button>`).join("") : '<div class="panel-body small muted">Nothing running short at the current pace.</div>'}</section>`;
 }
 function home() {
   const syncAt = tank_board_settings.sync?.at,
@@ -385,7 +367,7 @@ function home() {
       "Your parts, shared out to keep up with sales.",
       `<button class="btn" data-flow="count">${icon("count")}Count stock</button><button class="btn primary" data-flow="out">${icon("out")}Take stock out</button>`,
     ) +
-    `${parts.some((p) => p.on_hand === null) ? '<div class="flow-alert warning">Uncounted parts are treated as unlimited in the build estimate, as in the daily sync. Count them before taking stock out.</div>' : ""}${buildWarning(a.result)}<div class="summary"><div class="summary-item"><div class="label">${icon("drop")}Tanks you can build</div><strong class="num">${fmt(tankTotal)}</strong><small>Lite + Pro, shared parts</small></div><div class="summary-item"><div class="label">${icon("trends")}Sold in the last 30 days</div><strong class="num">${fmt(sales)}</strong><small>${change !== null ? `<span class="${change < 0 ? "down" : "up"}">${change < 0 ? "↓" : "↑"} ${Math.abs(change)}%</span>` : "Previous total: " + fmt(prev)} · across all products</small></div><div class="summary-item"><div class="label">${icon("truck")}Parts on the way</div><strong class="num">${parts.filter((p) => p.on_water > 0).length}</strong><small>part types awaiting delivery</small></div></div><div class="section-heading"><h2>Your build board <span class="muted small">· ${tank_board_product.length} products</span></h2><div class="segmented" role="group" aria-label="Stock to include"><button data-stock="now" aria-pressed="${stockView === "now"}">On hand</button><button data-stock="after" aria-pressed="${stockView === "after"}">After delivery</button></div></div>${stockView === "after" ? '<div class="flow-alert">Includes stock on the way. Only stock on hand can be built today.</div>' : ""}<div class="product-grid">${a.result.map(productCard).join("")}</div><p id="reservation-note" class="small muted">Parts for unshipped orders are set aside at each daily sync (last run ${esc(lastRun)}).</p><details class="explanation"><summary>${icon("parts")} How these numbers are worked out</summary><p>After the parts set aside at the last daily sync, shared products get two units each where possible, then share the remaining parts by sales pace up to 12 weeks of cover; full products get everything they can build from what’s left, with no cap. Shopify bundles use the products inside them in Shopify and take no parts from this pool.</p></details><div class="bottom-grid"><section class="panel"><div class="panel-head"><h2>Next on your list</h2><p>Counts, deliveries and parts to order.</p></div><div class="panel-body">${
+    `${parts.some((p) => p.on_hand === null) ? '<div class="flow-alert warning">Uncounted parts are treated as unlimited in the build estimate, as in the daily sync. Count them before taking stock out.</div>' : ""}${runningShortPanel()}<div class="summary"><div class="summary-item"><div class="label">${icon("drop")}Tanks you can build</div><strong class="num">${fmt(tankTotal)}</strong><small>Lite + Pro, shared parts</small></div><div class="summary-item"><div class="label">${icon("trends")}Sold in the last 30 days</div><strong class="num">${fmt(sales)}</strong><small>${change !== null ? `<span class="${change < 0 ? "down" : "up"}">${change < 0 ? "↓" : "↑"} ${Math.abs(change)}%</span>` : "Previous total: " + fmt(prev)} · across all products</small></div><div class="summary-item"><div class="label">${icon("truck")}Parts on the way</div><strong class="num">${parts.filter((p) => p.on_water > 0).length}</strong><small>part types awaiting delivery</small></div></div><div class="section-heading"><h2>Your build board <span class="muted small">· ${tank_board_product.length} products</span></h2><div class="segmented" role="group" aria-label="Stock to include"><button data-stock="now" aria-pressed="${stockView === "now"}">On hand</button><button data-stock="after" aria-pressed="${stockView === "after"}">After delivery</button></div></div>${stockView === "after" ? '<div class="flow-alert">Includes stock on the way. Only stock on hand can be built today.</div>' : ""}<div class="product-grid">${a.result.map(productCard).join("")}</div><p id="reservation-note" class="small muted">Parts for unshipped orders are set aside at each daily sync (last run ${esc(lastRun)}).</p><details class="explanation"><summary>${icon("parts")} How these numbers are worked out</summary><p>After the parts set aside at the last daily sync, shared products get two units each where possible, then share the remaining parts by sales pace up to 12 weeks of cover; full products get everything they can build from what’s left, with no cap. Shopify bundles use the products inside them in Shopify and take no parts from this pool.</p></details><div class="bottom-grid"><section class="panel"><div class="panel-head"><h2>Next on your list</h2><p>Counts, deliveries and parts to order.</p></div><div class="panel-body">${
       urgent
         .slice(0, 2)
         .map(
@@ -416,17 +398,17 @@ function reorderText(x) {
   if (x.p.on_hand === null) return "Count this part first";
   if (x.p.on_water > 0)
     return x.gap
-      ? "Delivery on the way · runs out before it lands"
-      : `Delivery on the way${x.due ? " · next order by " + date(x.due) : ""}`;
+      ? shortStatus(x)
+      : `Delivery on the way, ${arrivalText(x)}${x.due ? " · next order by " + date(x.due) : ""}`;
   if (x.p.lead_days === null) return "Set this part’s lead time in Shopify";
   return x.due
-    ? `Order by ${date(x.due)}${x.due < now() ? " · Overdue" : ""}`
+    ? `Order by ${date(x.due)}${x.overdue ? " · Overdue" : ""}`
     : "No sales pace yet";
 }
 function partsResults() {
   const rows = filteredParts();
   return rows.length
-    ? `<table class="part-table"><thead><tr><th>Part</th><th>On hand</th><th>On the way</th><th>On hold</th><th>Weeks left</th><th>Order by</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="part-first"><b>${esc(x.p.name)}</b><small>${esc(x.p.code)} <span class="supplier-name">· ${esc(x.p.supplier)}</span></small></td><td><span class="cell-num num">${fmt(x.p.on_hand)}</span> <span class="muted small">${litres(x.p.unit) ? "L" : ""}</span></td><td><span class="num ${x.p.on_water ? "up" : "muted"}">${fmt(x.p.on_water)}</span></td><td><span class="num muted">${fmt(x.p.on_hold)}</span></td><td><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></td><td><div class="order-date ${x.sev}">${reorderText(x)}</div><small>${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</small></td></tr>`).join("")}</tbody></table><div class="part-cards">${rows.map((x) => `<article class="part-card"><div class="row between"><div><h3>${esc(x.p.name)}</h3><div class="small muted">${esc(x.p.code)} · ${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</div></div><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></div><div class="part-stocks"><div><b class="num">${fmt(x.p.on_hand)}${litres(x.p.unit) ? " L" : ""}</b>On hand</div><div><b class="num ${x.p.on_water ? "up" : ""}">${fmt(x.p.on_water)}</b>On the way</div><div><b class="num">${fmt(x.p.on_hold)}</b>On hold</div></div><div class="part-reorder ${x.sev}"><span>${reorderText(x)}</span>${x.p.on_water ? `<button class="text-btn" data-receive="${esc(x.p.code)}">Receive →</button>` : ""}</div></article>`).join("")}</div><div class="data-note">Weeks left use all products’ sales and the parts set aside at the last daily sync. Reorder dates count stock on the way as coming and use each part’s lead time. Delivery warnings compare shelf cover with that lead time; no actual arrival date is stored. On hold is separate from usable stock.</div>`
+    ? `<table class="part-table"><thead><tr><th>Part</th><th>On hand</th><th>On the way</th><th>On hold</th><th>Weeks left</th><th>Order by</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="part-first"><b>${esc(x.p.name)}</b><small>${esc(x.p.code)} <span class="supplier-name">· ${esc(x.p.supplier)}</span></small></td><td><span class="cell-num num">${fmt(x.p.on_hand)}</span> <span class="muted small">${litres(x.p.unit) ? "L" : ""}</span></td><td><span class="num ${x.p.on_water ? "up" : "muted"}">${fmt(x.p.on_water)}</span>${x.p.on_water ? `<small class="arrival-date">${arrivalText(x)}</small>` : ""}</td><td><span class="num muted">${fmt(x.p.on_hold)}</span></td><td><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></td><td><div class="order-date ${x.sev}">${reorderText(x)}</div><small>${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</small></td></tr>`).join("")}</tbody></table><div class="part-cards">${rows.map((x) => `<article class="part-card"><div class="row between"><div><h3>${esc(x.p.name)}</h3><div class="small muted">${esc(x.p.code)} · ${x.p.lead_days === null ? "Lead time not set" : x.p.lead_days + " days to land"}</div></div><span class="pill ${x.sev}">${x.w === null ? "—" : x.w.toFixed(1) + " weeks"}</span></div><div class="part-stocks"><div><b class="num">${fmt(x.p.on_hand)}${litres(x.p.unit) ? " L" : ""}</b>On hand</div><div><b class="num ${x.p.on_water ? "up" : ""}">${fmt(x.p.on_water)}</b>On the way${x.p.on_water ? `<small class="arrival-date">${arrivalText(x)}</small>` : ""}</div><div><b class="num">${fmt(x.p.on_hold)}</b>On hold</div></div><div class="part-reorder ${x.sev}"><span>${reorderText(x)}</span>${x.p.on_water ? `<button class="text-btn" data-receive="${esc(x.p.code)}">Receive →</button>` : ""}</div></article>`).join("")}</div><div class="data-note">Weeks left use all products’ sales and the parts set aside at the last daily sync. Reorder dates count stock on the way as coming and use each part’s lead time. Delivery warnings use the part’s ETA, or today plus its lead time when ETA is blank. On hold is separate from usable stock.</div>`
     : '<div class="empty">No parts match. Try another name or filter.</div>';
 }
 function partsPage() {
