@@ -105,18 +105,18 @@ class Shopify {
           who: "Shopify orders #300113, #301113, #302113",
           recorded_by: "Daily sync",
           changes: [{ code: "RESIN", delta: -10 }],
-          orders: [300, 301, 302],
+          orders: [300113, 301113, 302113],
         }),
       ],
     };
     this.settings = node("settings", "main", {
       sales_window: "Last complete 30 days",
-      sync: { at: "2026-10-21T06:51:00+10:00", through: "302" },
+      sync: { at: "2026-10-21T06:51:00+10:00", through: "302113" },
     });
     this.orders = [
       {
         id: "gid://shopify/Order/9002",
-        name: "#303113",
+        name: "#1680113",
         cancelledAt: null,
         lines: [
           { sku: "SFR-TANK-10L", currentQuantity: 2, unfulfilledQuantity: 2 },

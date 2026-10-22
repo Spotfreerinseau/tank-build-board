@@ -47,7 +47,7 @@ test("shared parts reserve visible unshipped orders before allocation and avoid 
   assert.equal(result[0].n * 10 + result[1].n * 15 <= 85, true);
   assert.equal(result[2].unknown, false);
   assert.ok(result[2].uncounted.includes("CAP"));
-  board.movements.push({ kind: "order", orders: [303], who: "" });
+  board.movements.push({ kind: "order", orders: [1680113], who: "" });
   assert.deepEqual(board.reservations(), {});
 });
 test("allocation conserves parts, honours sort-order floor and exact 4.33 stopping threshold over independent random scenarios", () => {
@@ -149,13 +149,14 @@ test("zero-sales products only receive the floor; unknown and invalid recipes ne
   assert.deepEqual(T.recipe([{ code: "a", qty: 0 }]), []);
 });
 test("dedupe uses order numbers or who substring on any movement, excluding put-back entries", () => {
-  const order = { id: "gid://shopify/Order/9002", name: "#303113" };
-  assert.equal(T.orderNumber(order), "303");
+  const order = { id: "gid://shopify/Order/9002", name: "#1680113" };
+  assert.equal(T.orderNumber(order), "1680113");
+  assert.equal(T.orderNumber({ ...order, number: 1680 }), "1680113");
   for (const m of [
-    { orders: [303] },
-    { orders: ["303"] },
-    { kind: "gift", who: "A gift for #303113" },
-    { kind: "order", who: "#303" },
+    { orders: [1680113] },
+    { orders: ["1680113"] },
+    { kind: "gift", who: "A gift for #1680113" },
+    { kind: "order", who: "#1680113" },
   ])
     assert.equal(T.alreadyRecorded(order, [m]), true, JSON.stringify(m));
   assert.equal(
@@ -164,7 +165,7 @@ test("dedupe uses order numbers or who substring on any movement, excluding put-
   );
   assert.equal(
     T.alreadyRecorded(order, [
-      { handle: "out", orders: [303] },
+      { handle: "out", orders: [1680113] },
       { undoes: "out" },
     ]),
     false,
@@ -174,6 +175,73 @@ test("dedupe uses order numbers or who substring on any movement, excluding put-
     false,
   );
 });
+test("real-style sync lists prevent duplicate deductions inside a grouped who range", async () => {
+  const { board, shop } = setup();
+  const recent = [1678113, 1679113, 1680113];
+  const range = [1671113, 1672113, 1673113, 1674113, 1675113, 1676113, 1677113];
+  shop.types.tank_board_movement = [
+    node("sync-recent", "sync-recent", {
+      kind: "order",
+      recorded_by: "Daily sync",
+      orders: recent,
+      who: "",
+    }),
+    node("sync-range", "sync-range", {
+      kind: "order",
+      recorded_by: "Daily sync",
+      orders: range,
+      who: "Shopify orders #1671113 to #1677113",
+    }),
+  ];
+  shop.settings = node("settings", "main", { sync: { through: 1680113 } });
+  const template = shop.orders[0];
+  shop.orders = [...range, ...recent].map((number) => ({
+    ...template,
+    name: "#" + number,
+  }));
+  await board.refresh();
+  await board.refreshOrders();
+  assert.equal(board.settings.sync.through, 1680113);
+  assert.deepEqual(board.reservations(), {});
+  for (const number of [...range, ...recent]) {
+    const order = { name: "#" + number };
+    assert.equal(
+      T.alreadyRecorded(order, board.movements),
+      true,
+      String(number),
+    );
+    await assert.rejects(
+      () => board.manualOrder(String(number), "SFR-TANK-10L", 2),
+      /already in History/,
+    );
+  }
+  await assert.rejects(
+    () => board.manualOrder("1680", "SFR-TANK-10L", 2),
+    /already in History/,
+  );
+  await assert.rejects(
+    () => board.manualOrder("1674", "SFR-TANK-10L", 2),
+    /already in History/,
+  );
+  assert.equal(
+    T.alreadyRecorded({ name: "#1674113" }, [
+      ...board.movements,
+      { undoes: "sync-range" },
+    ]),
+    false,
+  );
+  assert.equal(shop.writes.length, 0);
+});
+test("manual lookup accepts short and full digits with or without # and returns the full identity", async () => {
+  const { board, shop } = setup();
+  await board.refresh();
+  for (const input of ["1680", "1680113", "#1680", "#1680113"]) {
+    const order = await board.manualOrder(input, "SFR-TANK-10L", 2);
+    assert.equal(order.id, shop.orders[0].id);
+    assert.equal(T.orderNumber(order), "1680113", input);
+  }
+  assert.equal(shop.writes.length, 0);
+});
 test("orders permission failure is explicit; no order or stock fixtures are substituted", async () => {
   const { board, shop } = setup();
   await board.refresh();
@@ -182,7 +250,7 @@ test("orders permission failure is explicit; no order or stock fixtures are subs
   assert.deepEqual(board.orders, []);
   assert.match(board.ordersError, /may differ/);
   await assert.rejects(
-    () => board.manualOrder("#303", "SFR-TANK-10L", 2),
+    () => board.manualOrder("#1680113", "SFR-TANK-10L", 2),
     /Access denied/,
   );
   assert.equal(shop.writes.length, 0);
@@ -190,19 +258,19 @@ test("orders permission failure is explicit; no order or stock fixtures are subs
 test("manual orders are resolved against Shopify and must cover all tracked products and quantities", async () => {
   const { board, shop } = setup();
   await board.refresh();
-  const order = await board.manualOrder("303", "SFR-TANK-10L", 2);
+  const order = await board.manualOrder("1680", "SFR-TANK-10L", 2);
   assert.equal(order.id, shop.orders[0].id);
   await assert.rejects(
-    () => board.manualOrder("#303", "SFR-TANK-10L", 1),
+    () => board.manualOrder("#1680113", "SFR-TANK-10L", 1),
     /full quantity/,
   );
   board.movements.push({
     kind: "order",
-    who: "Shopify order #303",
+    who: "Shopify order #1680113",
     orders: [],
   });
   await assert.rejects(
-    () => board.manualOrder("#303", "SFR-TANK-10L", 2),
+    () => board.manualOrder("#1680113", "SFR-TANK-10L", 2),
     /already in History/,
   );
 });

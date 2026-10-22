@@ -221,23 +221,26 @@ const root = path.resolve(__dirname, "..");
     assert.equal(shop.value("RESIN"), 101);
     checks++;
 
-    // Shopify names include the 113 suffix; save only the canonical order number.
+    // Shopify names include the 113 suffix; save the full digits used by the daily sync.
     await action("out");
     await page.locator('[data-why="order"]').click();
     await page.locator("#out-qty").fill("2");
-    await page.locator("#out-who").fill("303");
+    await page.locator("#out-who").fill("1680");
     await page.locator("[data-save-out]").click();
     await saved();
     let record = shop.types.tank_board_movement.find((n) =>
       n.fields.some(
-        (f) => f.key === "who" && f.value === "Shopify order #303113",
+        (f) => f.key === "who" && f.value === "Shopify order #1680113",
       ),
     );
     assert.ok(record);
-    assert.equal(record.fields.find((f) => f.key === "orders").value, "[303]");
+    assert.equal(
+      record.fields.find((f) => f.key === "orders").value,
+      "[1680113]",
+    );
     const afterOrder = shop.value("RESIN");
     await page.locator("#out-qty").fill("2");
-    await page.locator("#out-who").fill("#303113");
+    await page.locator("#out-who").fill("#1680113");
     await page.locator("[data-save-out]").click();
     await page
       .getByRole("alert")
@@ -246,7 +249,7 @@ const root = path.resolve(__dirname, "..");
     assert.equal(shop.value("RESIN"), afterOrder);
     checks++;
     await nav("history");
-    await page.locator("#history-search").fill("Shopify order #303113");
+    await page.locator("#history-search").fill("Shopify order #1680113");
     await page.locator("[data-undo]").first().click();
     await page.locator("[data-confirm-undo]").click();
     await saved();

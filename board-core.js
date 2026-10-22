@@ -112,11 +112,9 @@
     };
   }
 
-  // Shopify uses a numeric order number with a shop-configured 113 suffix in name.
+  // The sync stores every digit of the Shopify name, including the 113 suffix.
   function orderNumber(order) {
-    if (order.number != null) return String(order.number);
-    const name = String(order.name || "").replace(/^#/, "");
-    return name.endsWith("113") ? name.slice(0, -3) : name;
+    return String(order.name || "").replace(/^#/, "");
   }
   function alreadyRecorded(order, movements) {
     const number = orderNumber(order);
@@ -435,9 +433,9 @@
       if (!/^#?\d+$/.test(who.trim()))
         fail("Enter the Shopify order number, such as #1843.");
       const typed = who.trim().replace(/^#/, "");
-      // A bare number is the canonical number. A #name may include the 113 suffix.
-      // Try both exact names, so an order number that itself ends in 113 works too.
-      const names = who.trim().startsWith("#")
+      // Accept a short reference or the full digits, with or without #.
+      // Resolve against Shopify before deciding which number to store.
+      const names = typed.endsWith("113")
         ? ["#" + typed, "#" + typed + "113"]
         : ["#" + typed + "113", "#" + typed];
       let order;
